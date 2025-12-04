@@ -31,15 +31,6 @@ const projects = [
     image: "../assets/gallery/edu&research/Screenshot 2025-12-01 022021.png",
     description: "High-fidelity product design mockup and production training ",
   },
-  /*
-  {
-    id: 5,
-    title: "Rentable Spaces",
-    category: "Rent Spaces",
-    image: "../assets/gallery/rentspace/DSC_0109.jpg",
-    description: "Available Workspaces for 3D Printing Projects",
-  },
-  */
   {
     id: 6,
     title: "Dentures",
