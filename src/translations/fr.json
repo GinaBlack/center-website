@@ -1,0 +1,49 @@
+{
+  "navigation": {
+    "logo": "Centre High-Tech d'Impression 3D",
+    "home": "Accueil",
+    "services": "Services",
+    "gallery": "Galerie",
+    "submitProject": "Soumettre un Projet",
+    "learning": "Apprentissage",
+    "workshops": "Ateliers",
+    "about": "À Propos",
+    "contact": "Contact",
+    "adminDash": "Tableau de Bord Admin",
+    "login": "Connexion",
+    "logout": "Déconnexion"
+  },
+  "hero": {
+    "title": "Transformez Vos Idées en Réalité",
+    "description": "Du prototypage rapide aux pièces de qualité production, nous proposons des services d'impression 3D de précision pour les entreprises et les créateurs.",
+    "startProject": "Démarrer Votre Projet",
+    "viewPortfolio": "Voir le Portfolio"
+  },
+  "home": {
+    "institutionName": "École Nationale Supérieure Polytechnique de Yaoundé",
+    "centerName": "Centre d'Expérimentation et de Production",
+    "slogan": "De l'imagination à la production de qualité",
+    "services": "Services",
+    "about": "À propos",
+    "contact": "Contact",
+    "training": "Formation",
+    "spaceRental": "Location d'espaces"
+  },
+  "services": {
+    "title": "Nos Services",
+    "printing3d": "Impression 3D",
+    "training": "Formation",
+    "prototyping": "Prototypage",
+    "spaceRental": "Location d'espaces",
+    "description": "L'impression 3D révolutionne de nombreux secteurs, en offrant des solutions sur mesure, rapides et économiques pour des besoins complexes et variés."
+  },
+  "about": {
+    "title": "Qui sommes-nous ?",
+    "mission": "Nos Missions",
+    "vision": "Vision",
+    "values": "Valeurs clés",
+    "missionText": "Faciliter la transformation des idées en solutions concrètes par la recherche, l'expérimentation, et la production tout en renforçant les compétences à travers la formation.",
+    "visionText": "Devenir un acteur incontournable de l'innovation technologique et industrielle.",
+    "valuesText": "Innovation | Excellence | Durabilité | Partage des connaissances"
+  }
+}

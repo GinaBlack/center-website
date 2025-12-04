@@ -1,0 +1,22 @@
+{
+  "navigation": {
+    "logo": "3D Printing High-Tech Center",
+    "home": "Home",
+    "services": "Services",
+    "gallery": "Gallery",
+    "submitProject": "Submit Project",
+    "learning": "Learning",
+    "workshops": "Workshops",
+    "about": "About",
+    "contact": "Contact",
+    "adminDash": "Admin Dashboard",
+    "login": "Login",
+    "logout": "Logout"
+  },
+  "hero": {
+    "title": "Transform Your Ideas Into Reality",
+    "description": "From rapid prototyping to production-grade parts, we deliver precision 3D printing services for businesses and creators.",
+    "startProject": "Start Your Project",
+    "viewPortfolio": "View Portfolio"
+  }
+}
