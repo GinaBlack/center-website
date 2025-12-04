@@ -1,4 +1,4 @@
-import { useState } from "react";
+``import { useState } from "react";
 import { ImageWithFallback } from "./ImgSrc/ImageWithFallback";
 import  industrialPrototype from "../assets/gallery/industrial/tubes.jpg";
 import  productDesign from "../assets/gallery/custom/Screenshot 2025-12-01 022202.png";
