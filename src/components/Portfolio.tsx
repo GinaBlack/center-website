@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ImageWithFallback } from "./ImgSrc/ImageWithFallback";
 import { Badge } from "./ui/badge";
 
-// Fixed image paths: MUST come from the /public folder
+
 const projects = [
   {
     id: 1,

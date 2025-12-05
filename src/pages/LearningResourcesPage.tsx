@@ -82,11 +82,10 @@ export function LearningResourcesPage() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-muted/50 to-background py-20">
+      <section className="bg-black py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge className="mb-4">Learning Hub</Badge>
-          <h1 className="tracking-tight mb-6">Learning Resources</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+          <h1 className="tracking-tight text-white text-lg font-light mb-6">Learning Resources</h1>
+          <p className="text-white text-sm font-light max-w-2xl mx-auto">
             Master 3D printing with our comprehensive tutorials, guides, and resources. From beginner basics to advanced techniques.
           </p>
         </div>
@@ -112,7 +111,7 @@ export function LearningResourcesPage() {
                       <Card key={item.title} className="hover:shadow-lg transition-shadow cursor-pointer">
                         <CardHeader>
                           <div className="flex items-start justify-between mb-2">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-red-600 rounded-lg flex items-center justify-center">
+                            <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
                               <item.icon className="w-5 h-5 text-white" />
                             </div>
                             <Badge variant="secondary">{item.duration}</Badge>

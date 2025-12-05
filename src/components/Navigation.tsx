@@ -9,7 +9,6 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useTranslation } from '../hooks/useTranslation';
-import LanguageSwitcher from '../component/languageSwitcher';
 import logo from "../assets/images/logo.png";
 
 
@@ -36,7 +35,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
 
     // Listen for hash changes
     window.addEventListener('hashchange', updateCurrentPage);
-    
+
     return () => {
       window.removeEventListener('hashchange', updateCurrentPage);
     };
@@ -44,31 +43,31 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
 
   const navigateTo = async (page: string) => {
     if (isAnimating || currentPage === page) return;
-    
+
     setIsAnimating(true);
-    
+
     // Add slide-out animation to current content
     const mainContent = document.querySelector('main');
     if (mainContent) {
       mainContent.classList.add('opacity-0', 'translate-y-4', 'transition-all', 'duration-300');
     }
-    
+
     // Wait for slide-out animation
     await new Promise(resolve => setTimeout(resolve, 200));
-    
+
     // Change page
     window.location.hash = page;
     setCurrentPage(page);
     setIsMenuOpen(false);
-    
+
     // Wait for next frame then slide in
     await new Promise(resolve => setTimeout(resolve, 50));
-    
+
     if (mainContent) {
       mainContent.classList.remove('opacity-0', 'translate-y-4');
       mainContent.classList.add('opacity-100', 'translate-y-0');
     }
-    
+
     // Reset animation state
     setTimeout(() => {
       setIsAnimating(false);
@@ -82,11 +81,8 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
     setIsLoggedIn(false);
     navigateTo("home");
   };
-  const toggleLanguage = () => {
-    setLanguage(prev => prev === "en" ? "fr" : "en");
-  };
-  
-    // helps with translation
+
+  // helps with translation
   const { t } = useTranslation();
 
   const navItems = [
@@ -102,7 +98,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
 
   // Helper function to check if item is active
   const isActive = (page: string) => currentPage === page;
-  
+
 
 
   return (
@@ -116,7 +112,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
             <img src={logo} alt="Logo" className="w-10 h-10 object-contain " />
             <span className="tracking-tight">{t("navigation.logo")}</span>
           </button>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-6">
             {navItems.map((item) => (
@@ -124,11 +120,10 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                 key={item.page}
                 onClick={() => navigateTo(item.page)}
                 disabled={isAnimating}
-                className={`text-sm transition-all duration-300 relative ${
-                  isActive(item.page)
-                    ? "text-foreground font-medium scale-105"
-                    : "text-muted-foreground hover:text-foreground hover:scale-105"
-                } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`text-sm transition-all duration-300 relative ${isActive(item.page)
+                  ? "text-foreground font-medium scale-105"
+                  : "text-muted-foreground hover:text-foreground hover:scale-105"
+                  } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {item.label}
                 {isActive(item.page) && (
@@ -149,26 +144,24 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => navigateTo("dashboard")}
-                    className={`transition-colors duration-200 ${
-                      isActive("dashboard") ? "bg-accent scale-105" : "hover:scale-105"
-                    }`}
+                    className={`transition-colors duration-200 ${isActive("dashboard") ? "bg-accent scale-105" : "hover:scale-105"
+                      }`}
                     disabled={isAnimating}
                   >
                     Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => navigateTo("submit-project")}
-                    className={`transition-colors duration-200 ${
-                      isActive("submit-project") ? "bg-accent scale-105" : "hover:scale-105"
-                    }`}
+                    className={`transition-colors duration-200 ${isActive("submit-project") ? "bg-accent scale-105" : "hover:scale-105"
+                      }`}
                     disabled={isAnimating}
                   >
                     Submit Project
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={isAnimating}
                     className="transition-colors duration-200 hover:scale-105"
@@ -179,8 +172,8 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 onClick={() => navigateTo("login")}
                 variant={isActive("login") ? "default" : "outline"}
                 disabled={isAnimating}
@@ -189,11 +182,10 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                 Login
               </Button>
             )}
-            <LanguageSwitcher />
           </div>
 
           {/* Mobile Menu Button */}
-          
+
           <button
             className="lg:hidden p-2 transition-transform duration-300 hover:scale-110"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -207,17 +199,15 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
         {isMenuOpen && (
           <div className="lg:hidden py-4 border-t">
             <div className="flex flex-col gap-2">
-              <LanguageSwitcher />
               {navItems.map((item) => (
                 <button
                   key={item.page}
                   onClick={() => navigateTo(item.page)}
                   disabled={isAnimating}
-                  className={`text-left transition-all duration-300 p-3 rounded-lg ${
-                    isActive(item.page)
-                      ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
-                  } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`text-left transition-all duration-300 p-3 rounded-lg ${isActive(item.page)
+                    ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
+                    } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   {item.label}
                 </button>
@@ -227,17 +217,16 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                   <button
                     onClick={() => navigateTo("dashboard")}
                     disabled={isAnimating}
-                    className={`text-left transition-all duration-300 p-3 rounded-lg ${
-                      isActive("dashboard")
-                        ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
-                    } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`text-left transition-all duration-300 p-3 rounded-lg ${isActive("dashboard")
+                      ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
+                      } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     Dashboard
                   </button>
-                  <Button 
-                    onClick={handleLogout} 
-                    variant="outline" 
+                  <Button
+                    onClick={handleLogout}
+                    variant="outline"
                     className="w-full transition-all duration-300 hover:scale-105 mt-2"
                     disabled={isAnimating}
                   >
@@ -246,8 +235,8 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                   </Button>
                 </>
               ) : (
-                <Button 
-                  onClick={() => navigateTo("login")} 
+                <Button
+                  onClick={() => navigateTo("login")}
                   className="w-full transition-all duration-300 hover:scale-105"
                   variant={isActive("login") ? "default" : "outline"}
                   disabled={isAnimating}
@@ -258,7 +247,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
             </div>
           </div>
         )}
-        
+
       </div>
     </nav>
   );

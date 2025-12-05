@@ -28,13 +28,13 @@ export function About() {
   return (
     <section id="about" className="py-12 lg:py-12 bg-muted/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* TOP SECTION */}
         <div className="grid lg:grid-cols-2 gap-12 items-center mb-20">
           <div className="space-y-6">
             <h2 className="tracking-tight">About the 3D Printing High-Tech Center</h2>
             <p className="text-muted-foreground">
-              We are the innovation showcase of the National Higher Polytechnic School of Yaoundé 
+              We are the innovation showcase of the National Higher Polytechnic School of Yaoundé
               a hub where imagination meets engineered reality. Our center empowers creators,
               researchers, engineers, and industries to prototype, experiment, learn, and produce
               with world-class additive manufacturing tools.
@@ -61,7 +61,7 @@ export function About() {
         </div>
 
         {/* STATS SECTION */}
-        <div className="grid md:grid-cols-3 gap-8 p-8 glossy-simple rounded-2xl shadow-sm">
+        <div className="grid md:grid-cols-3 gap-8 p-8 py-8 glossy-simple rounded-2xl shadow-sm">
           <div className="text-center">
             <div className="text-foreground font-semibold text-xl mb-2">FDM & PolyJet</div>
             <div className="text-muted-foreground text-sm">Dual high-end printing technologies</div>

@@ -43,7 +43,10 @@ export function Contact() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="tracking-tight mb-4">Get In Touch</h2>
           <p className="text-muted-foreground">
-            Ready to start your project? Contact us today for a free consultation and quote
+            Ready to start your project? Contact us today for a free consultation and quote <br />
+            Reserve a time slot for a workshop, seminar, or a 3D printing session <br />
+            Inquire about training sessions or any other inquiries
+
           </p>
         </div>
 
@@ -152,10 +155,10 @@ export function Contact() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Phone</div>
-                    <div> (+237) 222 22 45 47,<br /> 
-                          (+237) 694 70 56 90,<br />
-                          (+237) 677 46 99 21,<br />
-                          (+237) 697 39 63 01<br />
+                    <div> (+237) 222 22 45 47,<br />
+                      (+237) 694 70 56 90,<br />
+                      (+237) 677 46 99 21,<br />
+                      (+237) 697 39 63 01<br />
                     </div>
                   </div>
                 </div>

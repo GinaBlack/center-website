@@ -1,4 +1,4 @@
-import React,{ useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight, Download, ShoppingCart, Calendar, Clock, Package, MapPin, Filter, Printer, Home, Phone, Car, ToyBrick, Palette, Cpu } from "lucide-react";
 
 // Types for gallery items
@@ -303,9 +303,9 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
 
   const handleActionClick = () => {
     if (item.type === "3D-Print") {
-      navigateTo("/project-submit");
+      navigateTo("submit-project");
     } else {
-      navigateTo("/contact");
+      navigateTo("contact");
     }
     onClose();
   };
@@ -329,25 +329,25 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
   return (
     <>
       {/* Backdrop Blur */}
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20" onClick={onClose} />
-      
-      {/* Modal - Centered with 50% width */}
-      <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
-        <div 
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-10" onClick={onClose} />
+
+      {/* Modal - Centered with 90vh max height */}
+      <div className="fixed inset-0 z-15 flex items-center justify-center  p-4">
+        <div
           ref={modalRef}
-          className="relative bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col border border-border"
+          className="relative  bg-background rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto flex flex-col border border-border"
         >
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-20 w-8 h-8 glass-effect rounded-full flex items-center justify-center hover:bg-background transition-all hover:scale-110"
+            className="absolute top-4 right-4 z-30 w-8 h-8 glass-effect rounded-full flex items-center justify-center hover:bg-background transition-all hover:scale-110"
             title="Close"
             aria-label="Close modal"
           >
             <X className="w-4 h-4 " />
           </button>
 
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col">
 
             <div className="relative bg-black h-[200px] w-full flex-shrink-0">
               <div className="relative h-full w-full">
@@ -356,10 +356,10 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
                   alt={item.title}
                   className="w-full h-full object-cover"
                 />
-                
+
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 gradient-overlay-bottom" />
-                
+
                 {/* Carousel Controls */}
                 <button
                   onClick={(e) => {
@@ -400,11 +400,10 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
                       }}
                       onMouseEnter={stopCarousel}
                       onMouseLeave={startCarousel}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentImageIndex
-                          ? 'bg-white w-4'
-                          : 'bg-white/50 hover:bg-white/70'
-                      }`}
+                      className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex
+                        ? 'bg-white w-4'
+                        : 'bg-white/50 hover:bg-white/70'
+                        }`}
                       title={`Go to image ${index + 1}`}
                       aria-label={`Go to image ${index + 1}`}
                     />
@@ -414,15 +413,14 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
             </div>
 
             {/* Content - Scrollable area */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="p-6">
               <div className="space-y-6">
                 {/* Type Badge */}
                 <div className="flex items-center gap-2">
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    item.type === "3D-Print" 
-                      ? "bg-blue-500/10 text-blue-600"
-                      : "bg-green-500/10 text-green-600"
-                  }`}>
+                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${item.type === "3D-Print"
+                    ? "bg-blue-500/10 text-blue-600"
+                    : "bg-green-500/10 text-green-600"
+                    }`}>
                     {item.type}
                   </div>
                   <div className={`flex items-center gap-1 px-3 py-1 bg-muted rounded-full text-sm font-medium ${categoryTextColor}`}>
@@ -508,11 +506,10 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
                 <div className="flex flex-col sm:flex-row gap-3 pt-6 pb-2">
                   <button
                     onClick={handleActionClick}
-                    className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all hover:scale-105 ${
-                      item.type === "3D-Print"
-                        ? "bg-blue-500 hover:bg-blue-600 text-white"
-                        : "bg-green-500 hover:bg-green-600 text-white"
-                    }`}
+                    className={`flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all hover:scale-105 ${item.type === "3D-Print"
+                      ? "bg-blue-500 hover:bg-blue-600 text-white"
+                      : "bg-green-500 hover:bg-green-600 text-white"
+                      }`}
                   >
                     {item.type === "3D-Print" ? (
                       <>
@@ -559,10 +556,10 @@ export function GalleryPage() {
     // First filter by tab
     if (activeTab === "prints" && item.type !== "3D-Print") return false;
     if (activeTab === "rentals" && item.type !== "Space-Rental") return false;
-    
+
     // Then filter by category
     if (selectedCategory !== "all" && item.category !== selectedCategory) return false;
-    
+
     return true;
   });
 
@@ -604,81 +601,45 @@ export function GalleryPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative h-[50vh] min-h-[400px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-red-600 to-black">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/70" />
-          <div className="absolute inset-0" style={{
-            backgroundImage: `url("https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=1920&auto=format&fit=crop")`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 0.3
-          }} />
-          
-          {/* Grid pattern overlay */}
-          <div className="absolute inset-0 opacity-10 bg-grid-pattern" />
-        </div>
-        
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-2 glass-effect rounded-full mb-6">
-            <Printer className="w-4 h-4" />
-            <span className="text-sm font-medium text-white">3D Printing Gallery</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
-            Innovation <span className="text-blue-400">Showcase</span>
-          </h1>
-          <p className="text-xl md:text-2xl text-white/90 mb-8">
-            Explore cutting-edge 3D prints and premium creative spaces
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <div className="px-4 py-2 glass-effect rounded-full">
-              <span className="text-white text-sm">Click items for interactive preview</span>
-            </div>
-            <div className="px-4 py-2 bg-blue-500/20 backdrop-blur-sm rounded-full">
-              <span className="text-blue-300 text-sm">Download STL files</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <div className="h-6 text-center mb-4 py-32 bg-black text-white">
+        <h1 className="tracking-tight mb-4 ">Gallery</h1>
+        <p className="text-white ">
+          Explore our collection of featured projects, prototypes, and completed works.
+        </p>
+      </div>
       {/* Category Filter Section - Sticky - Fixed to remove scroll lines */}
-      <div className="sticky top-0 z-30 bg-background/95 border-b backdrop-blur-sm glass-effect">
+      < div className="top-0 z-10 bg-background/95 border-b backdrop-blur-sm glass-effect" >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between py-4 gap-4">
             {/* Main Tabs - Without overflow-x-auto to remove scroll */}
             <div className="flex space-x-1">
-              <button 
+              <button
                 onClick={() => handleTabChange("all")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                  filterAnimation ? 'filter-pulse' : ''
-                } ${
-                  activeTab === "all"
+                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${filterAnimation ? 'filter-pulse' : ''
+                  } ${activeTab === "all"
                     ? "bg-primary text-primary-foreground active-filter-indicator"
                     : "hover:bg-muted"
-                }`}
+                  }`}
               >
                 All Items
               </button>
-              <button 
+              <button
                 onClick={() => handleTabChange("prints")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                  filterAnimation ? 'filter-pulse' : ''
-                } ${
-                  activeTab === "prints"
+                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${filterAnimation ? 'filter-pulse' : ''
+                  } ${activeTab === "prints"
                     ? "bg-blue-500 text-white active-filter-indicator"
                     : "hover:bg-muted"
-                }`}
+                  }`}
               >
                 3D Prints
               </button>
-              <button 
+              <button
                 onClick={() => handleTabChange("rentals")}
-                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                  filterAnimation ? 'filter-pulse' : ''
-                } ${
-                  activeTab === "rentals"
+                className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${filterAnimation ? 'filter-pulse' : ''
+                  } ${activeTab === "rentals"
                     ? "bg-green-500 text-white active-filter-indicator"
                     : "hover:bg-muted"
-                }`}
+                  }`}
               >
                 Space Rentals
               </button>
@@ -690,7 +651,7 @@ export function GalleryPage() {
                 <Filter className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Filter by:</span>
               </div>
-              
+
               {/* Mobile filter toggle */}
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -699,7 +660,7 @@ export function GalleryPage() {
                 <Filter className="w-4 h-4" />
                 <span>Filters</span>
               </button>
-              
+
               {/* Desktop category filters - Without overflow to remove scroll */}
               <div className="hidden lg:flex flex-wrap gap-2">
                 {allCategories.map(category => {
@@ -709,15 +670,13 @@ export function GalleryPage() {
                     <button
                       key={category}
                       onClick={() => handleCategorySelect(category)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${
-                        filterAnimation ? 'filter-pulse' : ''
-                      } ${
-                        selectedCategory === category
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 ${filterAnimation ? 'filter-pulse' : ''
+                        } ${selectedCategory === category
                           ? category === "all"
                             ? "bg-primary text-primary-foreground"
                             : `${categoryGradients[category as keyof typeof categoryGradients]} ${categoryTextColor}`
                           : "bg-muted hover:bg-muted/80"
-                      }`}
+                        }`}
                     >
                       {CategoryIcon && <CategoryIcon className="w-3 h-3" />}
                       <span>{category === "all" ? "All Categories" : category}</span>
@@ -742,13 +701,12 @@ export function GalleryPage() {
                         handleCategorySelect(category);
                         setShowMobileFilters(false);
                       }}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                        selectedCategory === category
-                          ? category === "all"
-                            ? "bg-primary text-primary-foreground"
-                            : `${categoryGradients[category as keyof typeof categoryGradients]} ${categoryTextColor}`
-                          : "bg-background hover:bg-muted"
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${selectedCategory === category
+                        ? category === "all"
+                          ? "bg-primary text-primary-foreground"
+                          : `${categoryGradients[category as keyof typeof categoryGradients]} ${categoryTextColor}`
+                        : "bg-background hover:bg-muted"
+                        }`}
                     >
                       {CategoryIcon && <CategoryIcon className="w-3 h-3" />}
                       <span>{category === "all" ? "All" : category}</span>
@@ -759,10 +717,10 @@ export function GalleryPage() {
             </div>
           )}
         </div>
-      </div>
+      </div >
 
       {/* Main Content */}
-      <main className="py-12 lg:py-16">
+      < main className="py-12 lg:py-16" >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Active Filters Display */}
           {(activeTab !== "all" || selectedCategory !== "all") && (
@@ -776,7 +734,7 @@ export function GalleryPage() {
                 )}
                 {selectedCategory !== "all" && (
                   <span className={`px-2 py-1 bg-blue-500/10 text-blue-600 rounded text-sm flex items-center gap-1 ${categoryTextColors[selectedCategory as keyof typeof categoryTextColors]}`}>
-                    {categoryIcons[selectedCategory as keyof typeof categoryIcons] && 
+                    {categoryIcons[selectedCategory as keyof typeof categoryIcons] &&
                       React.createElement(categoryIcons[selectedCategory as keyof typeof categoryIcons], { className: "w-3 h-3" })}
                     {selectedCategory}
                   </span>
@@ -802,8 +760,8 @@ export function GalleryPage() {
                       3D Printed Works
                     </h2>
                     <p className="text-muted-foreground">
-                      {selectedCategory === "all" 
-                        ? "Custom designs across all categories" 
+                      {selectedCategory === "all"
+                        ? "Custom designs across all categories"
                         : categoryDescriptions[selectedCategory as keyof typeof categoryDescriptions]}
                     </p>
                   </div>
@@ -818,7 +776,7 @@ export function GalleryPage() {
                   const CategoryIcon = categoryIcons[item.category];
                   const categoryGradient = categoryGradients[item.category as keyof typeof categoryGradients];
                   const categoryTextColor = categoryTextColors[item.category as keyof typeof categoryTextColors];
-                  
+
                   return (
                     <div
                       key={item.id}
@@ -902,7 +860,7 @@ export function GalleryPage() {
                 {rentalItems.map((item) => {
                   const CategoryIcon = categoryIcons[item.category];
                   const categoryTextColor = categoryTextColors[item.category as keyof typeof categoryTextColors];
-                  
+
                   return (
                     <div
                       key={item.id}
@@ -973,15 +931,17 @@ export function GalleryPage() {
             </div>
           )}
         </div>
-      </main>
+      </main >
 
       {/* Modal */}
-      {selectedItem && (
-        <GalleryModal
-          item={selectedItem}
-          onClose={() => setSelectedItem(null)}
-        />
-      )}
-    </div>
+      {
+        selectedItem && (
+          <GalleryModal
+            item={selectedItem}
+            onClose={() => setSelectedItem(null)}
+          />
+        )
+      }
+    </div >
   );
 }

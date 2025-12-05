@@ -1,10 +1,11 @@
 import { Mail, Phone, MapPin } from "lucide-react";
 import logo from "../assets/images/logo.png";
+import LanguageSwitcher from '../component/languageSwitcher';
 
 export function Footer() {
   const navigateTo = (page: string) => {
     window.location.hash = page;
-  };
+  }
 
   return (
     <footer className="border-t bg-background">
@@ -14,12 +15,14 @@ export function Footer() {
             <div className="flex items-center gap-3 mb-4">
               <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
               <span className="tracking-tight">3D Printing High-Tech Center</span>
+
             </div>
+            <LanguageSwitcher />
           </div>
 
           <div>
             <h3 className="mb-4">Services</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
+            <ul className="space-y-1 text-sm text-muted-foreground">
               <li>
                 <button onClick={() => navigateTo("services")} className="hover:text-foreground">
                   FDM Printing
