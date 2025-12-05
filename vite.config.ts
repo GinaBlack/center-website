@@ -5,7 +5,7 @@
 
   export default defineConfig({
     plugins: [react()],
-    base: "/3D-Printing-Center-Website",
+    base: process.env.VITE_BASE_PATH || '/center-website',
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {
