@@ -175,7 +175,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
               <Button
                 size="lg"
                 onClick={() => navigateTo("login")}
-                variant={isActive("login") ? "default" : "outline"}
+                variant={isActive("login") ? "default" : "black"}
                 disabled={isAnimating}
                 className="transition-all duration-300 hover:scale-105 "
               >
@@ -238,7 +238,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                 <Button
                   onClick={() => navigateTo("login")}
                   className="w-full transition-all duration-300 hover:scale-105"
-                  variant={isActive("login") ? "default" : "outline"}
+                  variant={isActive("login") ? "default" : "black"}
                   disabled={isAnimating}
                 >
                   Login
@@ -249,6 +249,6 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
         )}
 
       </div>
-    </nav>
+    </nav >
   );
 }

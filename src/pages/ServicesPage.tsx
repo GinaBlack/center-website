@@ -48,7 +48,7 @@ const services = [
       "CAD-ready mesh generation"
     ],
     materials: ["Digital Files Only"],
-        link: "submit-project",
+    link: "submit-project",
   },
   {
     id: "finishing",
@@ -61,7 +61,7 @@ const services = [
       "Vapor smoothing (ABS)",
     ],
     materials: ["All Materials"],
-        link: "submit-project",
+    link: "submit-project",
   },
   {
     id: "training",
@@ -75,7 +75,7 @@ const services = [
       "Access to our printers during sessions",
     ],
     materials: ["Learning Materials Provided"],
-        link: "workshops",
+    link: "workshops",
   },
   {
     id: "spaces",
@@ -89,7 +89,7 @@ const services = [
       "Ideal for workshops and collaborative projects",
     ],
     materials: ["Access to All Equipment"],
-        link: "contact"
+    link: "contact"
   }
 ];
 
@@ -110,14 +110,14 @@ export function ServicesPage() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="bg-muted/30 py-8">
+      <section className="bg-black py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="tracking-tight mb-4 text-2xl">Our Services</h1>
-            <p className="text-muted-foreground mb-6 text-lg">
-              From rapid prototyping to production-grade parts, we offer comprehensive 3D printing services
-              with state-of-the-art technology and expert craftsmanship<br/> From concept to finished product, we provide training and workshops.<br/>
-              Spaces available for workshops, seminars and collaborative projects. 
+            <h1 className="tracking-tight text-white mb-4 text-lgx">Our Services</h1>
+            <p className="text-white mb-6 text-sm">
+              From rapid prototyping to production-grade parts, we offer comprehensive 3D printing services<br />
+              Training and Workshops<br />
+              Available spaces for seminars and collaborative projects.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" variant="black" onClick={() => navigateTo("submit-project")}>
@@ -125,7 +125,7 @@ export function ServicesPage() {
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigateTo("pricing")}>
-                View Pricing
+                View Discounts
               </Button>
             </div>
           </div>
@@ -138,8 +138,8 @@ export function ServicesPage() {
           <div className="space-y-4">
             {services.map((service) => (
               <Card key={service.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div 
-                  className="p-4 cursor-pointer" 
+                <div
+                  className="p-4 cursor-pointer"
                   onClick={() => toggleExpand(service.id)}
                 >
                   <div className="flex items-center justify-between">
@@ -165,9 +165,9 @@ export function ServicesPage() {
                           </Badge>
                         )}
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="ml-4"
                         onClick={(e) => {
                           e.stopPropagation();
@@ -208,20 +208,20 @@ export function ServicesPage() {
                           <h3 className="font-medium text-lg mb-4">Available Materials</h3>
                           <div className="flex flex-wrap gap-2 mb-4">
                             {service.materials.map((material) => (
-                              <Badge 
-                                key={material} 
-                                variant="secondary" 
+                              <Badge
+                                key={material}
+                                variant="secondary"
                                 className="px-3 py-1.5 text-sm"
                               >
                                 {material}
                               </Badge>
                             ))}
                           </div>
-                          
+
                           {/* Quick Action */}
                           <div className="mt-6">
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               className="w-full"
                               onClick={() => navigateTo(service.link)}
                             >

@@ -601,8 +601,8 @@ export function GalleryPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="h-6 text-center mb-4 py-32 bg-black text-white">
-        <h1 className="tracking-tight mb-4 ">Gallery</h1>
+      <div className=" text-center mb-4 py-20 bg-black text-white">
+        <h1 className="tracking-tight  text-lgx mb-2 ">Gallery</h1>
         <p className="text-white ">
           Explore our collection of featured projects, prototypes, and completed works.
         </p>

@@ -19,22 +19,22 @@ export function ProjectSubmissionPage() {
     name: "",
     email: "",
     phone: "",
-    
+
     // Step 2: Technical Details
     technology: "",
     material: "",
     color: "",
     quantity: "1",
-    
+
     // Step 3: Specifications
     infill: "20",
     layerHeight: "0.2",
     supportType: "auto",
-    
+
     // Step 4: Additional Services
     postProcessing: [] as string[],
     rushOrder: false,
-    
+
     // Step 5: Additional Info
     notes: "",
     files: [] as File[]
@@ -51,23 +51,23 @@ export function ProjectSubmissionPage() {
   const calculateEstimate = (data: typeof formData) => {
     let basePrice = 15000; // Base price in XAF
     const quantity = parseInt(data.quantity) || 1;
-    
+
     // Technology multiplier
     if (data.technology === "resin") basePrice *= 1.8;
     else if (data.technology === "scanning") basePrice = 45000;
-    
+
     // Material multiplier
     if (data.material.includes("Carbon") || data.material.includes("Nylon")) basePrice *= 1.5;
-    
+
     // Post-processing
     const processingCost = data.postProcessing.length * 9000;
-    
+
     // Rush order
     if (data.rushOrder) basePrice *= 1.5;
-    
+
     const total = (basePrice * quantity) + processingCost;
     setEstimatedPrice(total);
-    
+
     // Estimate time
     if (data.rushOrder) {
       setEstimatedTime("1-2");
@@ -86,13 +86,13 @@ export function ProjectSubmissionPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate that files are uploaded
     if (formData.files.length === 0) {
       toast.error("Please upload at least one 3D file before submitting");
       return;
     }
-    
+
     toast.success("Project submitted successfully! We'll contact you within 24 hours.");
     // Reset form
     setFormData({
@@ -133,7 +133,7 @@ export function ProjectSubmissionPage() {
         return;
       }
     }
-    
+
     setStep(step + 1);
   };
 
@@ -144,7 +144,7 @@ export function ProjectSubmissionPage() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="tracking-tight mb-4">Submit Your Project</h1>
+          <h1 className="tracking-tight mb-4 h-fit">Submit Your Project</h1>
           <p className="text-muted-foreground">
             Complete the form below to get an instant quote and submit your 3D printing project
           </p>

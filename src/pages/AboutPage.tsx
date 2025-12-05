@@ -2,18 +2,18 @@ import { Printer, Layers, Cog, LibraryBig, ArrowRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 
 export function AboutPage() {
-    const navigateTo = (page: string) => {
+  const navigateTo = (page: string) => {
     window.location.hash = page;
   };
   return (
     <div className="pt-16">
 
       {/* WHO WE ARE */}
-      <section className="py-20 ">
-        <div className="max-w-6xl mx-auto px-6 space-y-6 text-center">
+      <section className="py-12 ">
+        <div className="max-w-6xl mx-auto px-6 space-y-2 text-center">
           <h2 className="text-2xl font-bold tracking-tight">Who We Are</h2>
           <p className="text-muted-foreground max-w-3xl mx-auto text-lg leading-relaxed">
-            A hub for innovation, engineering, fabrication and high-level research 
+            A hub for innovation, engineering, fabrication and high-level research
             bridging creativity and technology through world-class additive manufacturing.
           </p>
         </div>
@@ -22,7 +22,7 @@ export function AboutPage() {
       {/* MISSION & VISION */}
       <section className="py-20 bg-black backdrop-blur-sm">
         <div className="max-w-6xl mx-32 px-6 grid md:grid-cols-2 gap-12">
-          <div className="p-8 rounded-xl shadow-sm bg-card hover:scale-[1.02] duration-500">
+          <div className="p-8 rounded-xl  shadow-sm bg-card hover:scale-[1.02] duration-500">
             <h3 className="text-2xl font-semibold mb-3 tracking-tight">Our Mission</h3>
             <p className="text-muted-foreground leading-relaxed">
               To transform ideas into functional products through advanced 3D printing,
@@ -30,7 +30,7 @@ export function AboutPage() {
             </p>
           </div>
 
-          <div className="p-8 rounded-xl shadow-sm bg-card hover:scale-[1.02] duration-500">
+          <div className="p-6 rounded-xl shadow-sm bg-card hover:scale-[1.02] duration-500">
             <h3 className="text-2xl font-semibold mb-3 tracking-tight">Our Vision</h3>
             <p className="text-muted-foreground leading-relaxed">
               To become the most influential additive manufacturing ecosystem
@@ -129,11 +129,11 @@ export function AboutPage() {
       </section>
 
       {/* CTA CONTACT */}
-    <section className="py-8 bg-black text-white">
+      <section className="py-8 bg-black text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="tracking-tight text-white text-lg mb-4">Ready to Build, Prototype, Innovate?</h2>
           <p className=" text-primary-foreground text-s mb-8">
-          Work with us and access the machines, knowledge and engineering culture that builds the future.
+            Work with us and access the machines, knowledge and engineering culture that builds the future.
           </p>
           <Button size="lg" variant="secondary" onClick={() => navigateTo("submit-project")}>
             Get Sarted <ArrowRight className="w-5 h-5" />
@@ -141,5 +141,5 @@ export function AboutPage() {
         </div>
       </section>
     </div>
-  ); 
+  );
 }

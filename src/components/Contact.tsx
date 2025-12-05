@@ -41,7 +41,7 @@ export function Contact() {
     <section id="contact" className="py-8 lg:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="tracking-tight mb-4">Get In Touch</h2>
+          <h2 className="tracking-tight text-lgx mb-4">Get In Touch</h2>
           <p className="text-muted-foreground">
             Ready to start your project? Contact us today for a free consultation and quote <br />
             Reserve a time slot for a workshop, seminar, or a 3D printing session <br />

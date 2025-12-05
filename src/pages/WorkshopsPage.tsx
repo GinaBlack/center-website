@@ -106,25 +106,25 @@ export function WorkshopsPage() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-muted/50 to-background py-20">
+      <section className="bg-black to-background py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className=" text-lg mb-6">Workshops & Training</h1>
-            <p className="text-muted-foreground mb-8">
+          <div className="text-center   max-w-3xl mx-auto">
+            <h1 className=" text-lgx mb-6 text-white ">Workshops & Training</h1>
+            <p className="text-white mb-8">
               Learn from industry experts in our state-of-the-art facility. Small class sizes ensure personalized attention and hands-on experience.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <div className="flex items-center gap-2 text-sm">
                 <Award className="w-4 h-4 text-blue-500" />
-                <span>Certification Available</span>
+                <span className="text-white">Certification Available</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <GraduationCap className="w-4 h-4 text-blue-500" />
-                <span>Student Discounts</span>
+                <span className="text-white">Student Discounts</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Users className="w-4 h-4 text-blue-500" />
-                <span>Small Groups</span>
+                <span className="text-white">Small Groups</span>
               </div>
             </div>
           </div>
@@ -144,8 +144,8 @@ export function WorkshopsPage() {
                         workshop.level === "Beginner"
                           ? "secondary"
                           : workshop.level === "Intermediate"
-                          ? "default"
-                          : "destructive"
+                            ? "default"
+                            : "destructive"
                       }
                     >
                       {workshop.level}
@@ -203,7 +203,7 @@ export function WorkshopsPage() {
                     </div>
                   </div>
 
-                  <Button className="w-full mt-auto" onClick={() => navigateTo("contact")}>
+                  <Button className="w-full mt-auto" variant="black" onClick={() => navigateTo("contact")}>
                     Register Now
                   </Button>
                 </CardContent>
@@ -252,7 +252,7 @@ export function WorkshopsPage() {
           <div className="grid md:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-red-600 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mb-4">
                   <Award className="w-6 h-6 text-white" />
                 </div>
                 <CardTitle>Industry Recognition</CardTitle>
@@ -265,7 +265,7 @@ export function WorkshopsPage() {
             </Card>
             <Card>
               <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-red-600 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mb-4">
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <CardTitle>Small Class Sizes</CardTitle>
@@ -278,7 +278,7 @@ export function WorkshopsPage() {
             </Card>
             <Card>
               <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-red-600 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-12 h-12 bg-black rounded-lg flex items-center justify-center mb-4">
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
                 <CardTitle>Practical Experience</CardTitle>

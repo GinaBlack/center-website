@@ -7,12 +7,11 @@ export function FileGuidelinesPage() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-muted/50 to-background py-20">
+      <section className="bg-black py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto">
-            <Badge className="mb-4">Technical Guidelines</Badge>
-            <h1 className="tracking-tight mb-6">File Preparation Guidelines</h1>
-            <p className="text-muted-foreground">
+            <h1 className="tracking-tight  text-white text-lgx mb-6">File Preparation Guidelines</h1>
+            <p className="text-white text-smx">
               Ensure your 3D models are print-ready with our comprehensive file preparation guide. Follow these best practices for optimal results.
             </p>
           </div>
@@ -331,7 +330,7 @@ export function FileGuidelinesPage() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Need Help?</strong> Our team can review your files before printing and suggest optimizations. 
+              <strong>Need Help?</strong> Our team can review your files before printing and suggest optimizations.
               File preparation service available for $25-75 depending on complexity.
             </AlertDescription>
           </Alert>
