@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { ImageWithFallback } from "./ImgSrc/ImageWithFallback";
 import { Badge } from "./ui/badge";
+import IndustrialProto from "../assets/gallery/industrial/tubes.jpg"
+import ProductDesign from "../assets/gallery/edu&research/Screenshot 2025-12-01 022021.png"
+import MnaPart from "../assets/gallery/industrial/gear.png"
+import wt from "../assets/gallery/edu&research/Screenshot 2025-12-01 022021.png"
+import dent from "../assets/gallery/health/dentals.jpg"
+import rob from "../assets/gallery/robotics/hand.jpg"
 
 
 const projects = [
@@ -8,42 +14,42 @@ const projects = [
     id: 1,
     title: "Industrial Prototype",
     category: "Industrial",
-    image: "/gallery/industrial/tubes.jpg",
+    image: IndustrialProto,
     description: "Functional prototype for industrial equipment",
   },
   {
     id: 2,
     title: "Product Design",
     category: "Education & Research",
-    image: "/gallery/custom/Screenshot_2025-12-01_022202.png",
+    image: ProductDesign,
     description: "Custom consumer product prototype",
   },
   {
     id: 3,
     title: "Manufacturing Parts",
     category: "Industrial",
-    image: "/gallery/industrial/gear.png",
+    image: MnaPart,
     description: "End-use parts for industrial applications",
   },
   {
     id: 4,
     title: "Workshops & Training",
     category: "Education & Research",
-    image: "/gallery/edu_research/Screenshot_2025-12-01_022021.png",
+    image: wt,
     description: "High-fidelity product design mockup and production training",
   },
   {
     id: 6,
     title: "Dentures",
     category: "Health",
-    image: "/gallery/health/dentals.jpg",
+    image: dent,
     description: "Advanced 3D printing technology",
   },
   {
     id: 7,
     title: "Robotic Hand",
     category: "Robotics",
-    image: "/gallery/robotics/hand.jpg",
+    image: rob,
     description: "Advanced 3D printing technology",
   },
 ];

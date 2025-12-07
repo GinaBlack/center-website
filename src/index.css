@@ -93,7 +93,7 @@
     --color-gray-200: oklch(.928 .006 264.531);
     --color-gray-500: oklch(.551 .027 264.364);
     --color-black: #000;
-    --color-white: #fff;
+    --color-white: #ffffff;
     --spacing: .25rem;
     --container-md: 28rem;
     --container-xl: 36rem;
@@ -1746,7 +1746,7 @@
   }
 
   .text-white\/90 {
-    color: #ffffffe6;
+    color: #ffffff;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
@@ -2646,17 +2646,17 @@
 
 :root {
   --font-size: 16px;
-  --background: #fff;
+  --background: #ffffff;
   --foreground: oklch(.145 0 0);
-  --card: #fff;
+  --card: #ffffff;
   --card-foreground: oklch(.145 0 0);
-  --popover: oklch(1 0 0);
+  --popover: oklch(100% 0.00011 271.152 / 0.756);
   --popover-foreground: oklch(.145 0 0);
   --primary: #030213;
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(.95 .0058 264.53);
   --secondary-foreground: #030213;
-  --muted: #ececf0;
+  --muted: #ececf0ac;
   --muted-foreground: #717182;
   --accent: #e9ebef;
   --accent-foreground: #030213;
@@ -2687,7 +2687,7 @@
 
 .dark {
   --background: oklch(.145 0 0);
-  --foreground: oklch(.985 0 0);
+  --foreground: oklch(98.511% 0.00011 271.152 / 0.274);
   --card: oklch(.145 0 0);
   --card-foreground: oklch(.985 0 0);
   --popover: oklch(.145 0 0);
@@ -3181,143 +3181,6 @@ html {
   background: black;
   color: white;
   font-weight: 600;
-}
-
-/* Carousel CSS */
-.carousel-container {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid #555;
-  border-radius: 24px;
-  padding: 16px;
-  --outer-r: 24px;
-  --p-distance: 12px;
-}
-
-.carousel-track {
-  display: flex;
-}
-
-.carousel-item {
-  position: relative;
-  display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  border: 1px solid #555;
-  border-radius: calc(var(--outer-r) - var(--p-distance));
-  background-color: #0d0d0d;
-  overflow: hidden;
-  cursor: grab;
-}
-
-.carousel-item:active {
-  cursor: grabbing;
-}
-
-.carousel-container.round {
-  border: 1px solid #555;
-}
-
-.carousel-item.round {
-  background-color: #0d0d0d;
-  position: relative;
-  bottom: 0.1em;
-  border: 1px solid #555;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-}
-
-.carousel-item-header.round {
-  padding: 0;
-  margin: 0;
-}
-
-.carousel-indicators-container.round {
-  position: absolute;
-  z-index: 2;
-  bottom: 3em;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.carousel-indicator.active {
-  background-color: #333333;
-}
-
-.carousel-indicator.inactive {
-  background-color: rgba(51, 51, 51, 0.4);
-}
-
-.carousel-item-header {
-  margin-bottom: 16px;
-  padding: 20px;
-  padding-top: 20px;
-}
-
-.carousel-icon-container {
-  display: flex;
-  height: 28px;
-  width: 28px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: #fff;
-}
-
-.carousel-icon {
-  height: 16px;
-  width: 16px;
-  color: #060010;
-}
-
-.carousel-item-content {
-  padding: 20px;
-  padding-bottom: 20px;
-}
-
-.carousel-item-title {
-  margin-bottom: 4px;
-  font-weight: 900;
-  font-size: 18px;
-  color: #fff;
-}
-
-.carousel-item-description {
-  font-size: 14px;
-  color: #fff;
-}
-
-.carousel-indicators-container {
-  display: flex;
-  width: 100%;
-  justify-content: center;
-}
-
-.carousel-indicators {
-  margin-top: 16px;
-  display: flex;
-  width: 150px;
-  justify-content: space-between;
-  padding: 0 32px;
-}
-
-.carousel-indicator {
-  height: 8px;
-  width: 8px;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 150ms;
-}
-
-.carousel-indicator.active {
-  background-color: #fff;
-}
-
-.carousel-indicator.inactive {
-  background-color: #555;
 }
 
 /* Waves CSS*/
