@@ -38,9 +38,9 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="py-8 lg:py-12">
+    <section id="contact" className="py-2 lg:py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-8 lg:mb-12">
           <h2 className="tracking-tight text-lgx mb-4">Get In Touch</h2>
           <p className="text-muted-foreground">
             Ready to start your project? Contact us today for a free consultation and quote <br />
@@ -169,7 +169,7 @@ export function Contact() {
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground">Address</div>
-                    <div>123 Innovation Drive<br />San Francisco, CA 94102</div>
+                    <div>ENSPY Campus, Yaoundé, Cameroon</div>
                   </div>
                 </div>
               </CardContent>

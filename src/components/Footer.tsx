@@ -85,7 +85,7 @@ export function Footer() {
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 mt-0.5" />
-                <span>123 Innovation Drive<br />San Francisco, CA 94102</span>
+                <span>ENSPY Campus, Yaoundé, Cameroon</span>
               </li>
             </ul>
           </div>

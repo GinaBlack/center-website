@@ -84,7 +84,7 @@ export function LearningResourcesPage() {
       {/* Hero Section */}
       <section className="bg-black py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="tracking-tight text-white text-lg font-light mb-6">Learning Resources</h1>
+          <h1 className="tracking-tight text-white text-lgx font-light mb-6">Learning Resources</h1>
           <p className="text-white text-sm font-light max-w-2xl mx-auto">
             Master 3D printing with our comprehensive tutorials, guides, and resources. From beginner basics to advanced techniques.
           </p>
