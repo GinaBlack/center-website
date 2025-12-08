@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ThemeProvider } from "next-themes";
 import { Navigation } from "./components/Navigation";
 import { Footer } from "./components/Footer";
 import { HomePage } from "./pages/HomePage";
@@ -63,7 +64,7 @@ export default function App() {
       case "dashboard":
         return isLoggedIn ? <UserDashboardPage /> : <LoginPage setIsLoggedIn={setIsLoggedIn} />;
       case "AdminDash":
-        return <AdminDashboardPage />;
+        return isLoggedIn ? <AdminDashboardPage /> : <LoginPage setIsLoggedIn={setIsLoggedIn} />;;
       case "login":
         return <LoginPage setIsLoggedIn={setIsLoggedIn} />;
       default:
@@ -72,13 +73,15 @@ export default function App() {
   };
 
   return (
-    <LanguageProvider>
-    <div className="min-h-screen bg-background">
-      <Navigation isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
-      <main>{renderPage()}</main>
-      <Footer />
-      <Toaster />
-    </div>
-    </LanguageProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <LanguageProvider>
+        <div className="min-h-screen bg-background">
+          <Navigation isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+          <main>{renderPage()}</main>
+          <Footer />
+          <Toaster />
+        </div>
+      </LanguageProvider>
+    </ThemeProvider>
   );
 }

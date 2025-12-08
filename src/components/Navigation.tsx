@@ -1,4 +1,4 @@
-import { Menu, X, User, LogOut, Globe } from "lucide-react";
+import { Menu, X, User, LogOut, Globe, Moon, Sun } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import {
@@ -8,6 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useTheme } from 'next-themes';
 import { useTranslation } from '../hooks/useTranslation';
 import logo from "../assets/images/logo.png";
 
@@ -22,7 +23,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
   const [currentPage, setCurrentPage] = useState("home");
   const [isAnimating, setIsAnimating] = useState(false);
   const [language, setLanguage] = useState("en");
-
+  const { theme, setTheme } = useTheme();
   // Update current page when hash changes
   useEffect(() => {
     const updateCurrentPage = () => {
@@ -112,87 +113,98 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
             <img src={logo} alt="Logo" className="w-10 h-10 object-contain " />
             <span className="tracking-tight">{t("navigation.logo")}</span>
           </button>
+          <div className="flex justify-between items-center">
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-6">
+              {navItems.map((item) => (
+                <button
+                  key={item.page}
+                  onClick={() => navigateTo(item.page)}
+                  disabled={isAnimating}
+                  className={`text-sm transition-all duration-300 relative ${isActive(item.page)
+                    ? "text-foreground font-medium scale-105"
+                    : "text-muted-foreground hover:text-foreground hover:scale-105"
+                    } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {item.label}
+                  {isActive(item.page) && (
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-100 transition-transform duration-300" />
+                  )}
+                  {!isActive(item.page) && (
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
+                  )}
+                </button>
+              ))}
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-6">
-            {navItems.map((item) => (
-              <button
-                key={item.page}
-                onClick={() => navigateTo(item.page)}
-                disabled={isAnimating}
-                className={`text-sm transition-all duration-300 relative ${isActive(item.page)
-                  ? "text-foreground font-medium scale-105"
-                  : "text-muted-foreground hover:text-foreground hover:scale-105"
-                  } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {item.label}
-                {isActive(item.page) && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-100 transition-transform duration-300" />
-                )}
-                {!isActive(item.page) && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                )}
-              </button>
-            ))}
-
-            {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isAnimating}>
-                    <User className="w-4 h-4 mr-2" />
-                    Account
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    onClick={() => navigateTo("dashboard")}
-                    className={`transition-colors duration-200 ${isActive("dashboard") ? "bg-accent scale-105" : "hover:scale-105"
-                      }`}
-                    disabled={isAnimating}
-                  >
-                    Dashboard
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => navigateTo("submit-project")}
-                    className={`transition-colors duration-200 ${isActive("submit-project") ? "bg-accent scale-105" : "hover:scale-105"
-                      }`}
-                    disabled={isAnimating}
-                  >
-                    Submit Project
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    disabled={isAnimating}
-                    className="transition-colors duration-200 hover:scale-105"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
+              {isLoggedIn ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" disabled={isAnimating}>
+                      <User className="w-4 h-4 mr-2" />
+                      Account
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => navigateTo("dashboard")}
+                      className={`transition-colors duration-200 ${isActive("dashboard") ? "bg-accent scale-105" : "hover:scale-105"
+                        }`}
+                      disabled={isAnimating}
+                    >
+                      Dashboard
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => navigateTo("submit-project")}
+                      className={`transition-colors duration-200 ${isActive("submit-project") ? "bg-accent scale-105" : "hover:scale-105"
+                        }`}
+                      disabled={isAnimating}
+                    >
+                      Submit Project
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      disabled={isAnimating}
+                      className="transition-colors duration-200 hover:scale-105"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  size="lg"
+                  onClick={() => navigateTo("login")}
+                  variant={isActive("login") ? "default" : "black"}
+                  disabled={isAnimating}
+                  className="transition-all duration-300 hover:scale-105 "
+                >
+                  Login
+                </Button>
+              )}
+            </div>
+            <div className="ml-7 mr-2">
               <Button
-                size="lg"
-                onClick={() => navigateTo("login")}
-                variant={isActive("login") ? "default" : "black"}
-                disabled={isAnimating}
-                className="transition-all duration-300 hover:scale-105 "
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                aria-label="Toggle theme"
+                className="theme-toggle-button"
               >
-                Login
+                <Sun className="theme-icon sun" />
+                <Moon className="theme-icon moon" />
               </Button>
-            )}
+            </div>
+            {/* Mobile Menu Button */}
+            <button
+              className="lg:hidden p-2 transition-transform duration-300 hover:scale-110"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              disabled={isAnimating}
+            >
+              {isMenuOpen ? <X className={isAnimating ? "opacity-50" : ""} /> : <Menu className={isAnimating ? "opacity-50" : ""} />}
+            </button>
           </div>
-
-          {/* Mobile Menu Button */}
-
-          <button
-            className="lg:hidden p-2 transition-transform duration-300 hover:scale-110"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            disabled={isAnimating}
-          >
-            {isMenuOpen ? <X className={isAnimating ? "opacity-50" : ""} /> : <Menu className={isAnimating ? "opacity-50" : ""} />}
-          </button>
         </div>
 
         {/* Mobile Navigation */}
