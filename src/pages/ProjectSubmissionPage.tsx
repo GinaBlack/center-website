@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle
+} from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -11,31 +13,35 @@ import { Upload, FileText, Calculator, CheckCircle, AlertCircle } from "lucide-r
 import { toast } from "sonner";
 import { Progress } from "../components/ui/progress";
 
+const countryCodes = [
+  { code: "+237", name: "Cameroon" },
+  { code: "+1", name: "USA" },
+  { code: "+44", name: "UK" },
+  { code: "+234", name: "Nigeria" },
+  // Add more codes as needed
+];
+
+const availableColors = [
+  "Black", "White", "Red", "Blue", "Green", "Yellow", "Orange", "Purple", "Grey"
+];
+
 export function ProjectSubmissionPage() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    // Step 1: Basic Info
     projectName: "",
     name: "",
     email: "",
     phone: "",
-
-    // Step 2: Technical Details
+    countryCode: "+237",
     technology: "",
     material: "",
     color: "",
     quantity: "1",
-
-    // Step 3: Specifications
     infill: "20",
     layerHeight: "0.2",
     supportType: "auto",
-
-    // Step 4: Additional Services
     postProcessing: [] as string[],
     rushOrder: false,
-
-    // Step 5: Additional Info
     notes: "",
     files: [] as File[]
   });
@@ -49,33 +55,23 @@ export function ProjectSubmissionPage() {
   };
 
   const calculateEstimate = (data: typeof formData) => {
-    let basePrice = 15000; // Base price in XAF
+    let basePrice = 15000;
     const quantity = parseInt(data.quantity) || 1;
 
-    // Technology multiplier
     if (data.technology === "resin") basePrice *= 1.8;
     else if (data.technology === "scanning") basePrice = 45000;
 
-    // Material multiplier
     if (data.material.includes("Carbon") || data.material.includes("Nylon")) basePrice *= 1.5;
 
-    // Post-processing
     const processingCost = data.postProcessing.length * 9000;
-
-    // Rush order
     if (data.rushOrder) basePrice *= 1.5;
 
     const total = (basePrice * quantity) + processingCost;
     setEstimatedPrice(total);
 
-    // Estimate time
-    if (data.rushOrder) {
-      setEstimatedTime("1-2");
-    } else if (quantity > 10) {
-      setEstimatedTime("5-7");
-    } else {
-      setEstimatedTime("3-5");
-    }
+    if (data.rushOrder) setEstimatedTime("1-2");
+    else if (quantity > 10) setEstimatedTime("5-7");
+    else setEstimatedTime("3-5");
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,22 +80,56 @@ export function ProjectSubmissionPage() {
     toast.success(`${files.length} file(s) uploaded`);
   };
 
+  const isValidEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
+  const isValidPhone = (phone: string) => /^[0-9]{6,15}$/.test(phone);
+
+  const handleNextStep = () => {
+    // Step 1 Validation
+    if (step === 1) {
+      if (!formData.projectName || !formData.name || !formData.email) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+      if (!isValidEmail(formData.email)) {
+        toast.error("Invalid email format");
+        return;
+      }
+      if (!isValidPhone(formData.phone)) {
+        toast.error("Invalid phone number");
+        return;
+      }
+    }
+    // Step 2 Validation
+    else if (step === 2) {
+      if (!formData.technology || !formData.material) {
+        toast.error("Please select technology and material");
+        return;
+      }
+    }
+    // Step 3 Validation
+    else if (step === 3) {
+      if (!formData.layerHeight || !formData.supportType) {
+        toast.error("Please complete print specifications");
+        return;
+      }
+    }
+
+    setStep(step + 1);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate that files are uploaded
     if (formData.files.length === 0) {
       toast.error("Please upload at least one 3D file before submitting");
       return;
     }
-
     toast.success("Project submitted successfully! We'll contact you within 24 hours.");
-    // Reset form
     setFormData({
       projectName: "",
       name: "",
       email: "",
       phone: "",
+      countryCode: "+237",
       technology: "",
       material: "",
       color: "",
@@ -113,28 +143,6 @@ export function ProjectSubmissionPage() {
       files: []
     });
     setStep(1);
-  };
-
-  const handleNextStep = () => {
-    // Validate current step before proceeding
-    if (step === 1) {
-      if (!formData.projectName || !formData.name || !formData.email) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-    } else if (step === 2) {
-      if (!formData.technology || !formData.material) {
-        toast.error("Please select technology and material");
-        return;
-      }
-    } else if (step === 3) {
-      if (!formData.layerHeight || !formData.supportType) {
-        toast.error("Please complete print specifications");
-        return;
-      }
-    }
-
-    setStep(step + 1);
   };
 
   const progress = (step / 5) * 100;
@@ -218,13 +226,31 @@ export function ProjectSubmissionPage() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="phone">Phone</Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => handleInputChange("phone", e.target.value)}
-                            placeholder="+1 (555) 123-4567"
-                          />
+                          <div className="flex gap-2">
+                            <Select
+                              value={formData.countryCode}
+                              onValueChange={(value) => handleInputChange("countryCode", value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {countryCodes.map((c) => (
+                                  <SelectItem key={c.code} value={c.code}>
+                                    {c.name} ({c.code})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              id="phone"
+                              type="tel"
+                              value={formData.phone}
+                              onChange={(e) => handleInputChange("phone", e.target.value)}
+                              placeholder="Enter number"
+                              required
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -291,27 +317,35 @@ export function ProjectSubmissionPage() {
                         </Select>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="color">Color</Label>
-                          <Input
-                            id="color"
-                            value={formData.color}
-                            onChange={(e) => handleInputChange("color", e.target.value)}
-                            placeholder="e.g., Black, White, Blue"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="quantity">Quantity *</Label>
-                          <Input
-                            id="quantity"
-                            type="number"
-                            min="1"
-                            value={formData.quantity}
-                            onChange={(e) => handleInputChange("quantity", e.target.value)}
-                            required
-                          />
-                        </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="color">Color *</Label>
+                        <Select
+                          value={formData.color}
+                          onValueChange={(value) => handleInputChange("color", value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select color" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableColors.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="quantity">Quantity *</Label>
+                        <Input
+                          id="quantity"
+                          type="number"
+                          min="1"
+                          value={formData.quantity}
+                          onChange={(e) => handleInputChange("quantity", e.target.value)}
+                          required
+                        />
                       </div>
                     </div>
                   )}
@@ -493,6 +527,7 @@ export function ProjectSubmissionPage() {
                             <ul className="space-y-1 text-muted-foreground">
                               <li>• Ensure files are print-ready and manifold</li>
                               <li>• Check model orientation and scale</li>
+                              <li>• Review submission details to ensure all information is correct and valid</li>
                               <li>• Review our file guidelines for best results</li>
                             </ul>
                           </div>
@@ -538,45 +573,70 @@ export function ProjectSubmissionPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calculator className="w-5 h-5" />
-                  Instant Quote
+                  Submission Details
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Estimated Price</div>
-                  <div className="text-foreground">{estimatedPrice.toFixed(0)} XAF</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Turnaround Time</div>
-                  <div className="text-foreground">{estimatedTime} business days</div>
-                </div>
-                <div className="pt-4 border-t space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Quantity</span>
-                    <span>{formData.quantity || 1}</span>
+                {/* Step 1: Basic Info */}
+                {step >= 1 && (
+                  <div className="space-y-1">
+                    <div className="text-sm text-muted-foreground">Project Name</div>
+                    <div className="text-foreground">{formData.projectName || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Client Name</div>
+                    <div className="text-foreground">{formData.name || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Email</div>
+                    <div className="text-foreground">{formData.email || "-"}</div>
                   </div>
-                  {formData.technology && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Technology</span>
-                      <span className="capitalize">{formData.technology}</span>
-                    </div>
-                  )}
-                  {formData.material && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Material</span>
-                      <span className="capitalize">{formData.material.replace("-", " ")}</span>
-                    </div>
-                  )}
-                  {formData.postProcessing.length > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Post-Processing</span>
-                      <span>{formData.postProcessing.length} service(s)</span>
-                    </div>
-                  )}
-                </div>
-                <div className="pt-4 border-t">
+                )}
+
+                {/* Step 2: Technology & Material */}
+                {step >= 2 && (
+                  <div className="pt-4 border-t space-y-1">
+                    <div className="text-sm text-muted-foreground">Technology</div>
+                    <div className="text-foreground capitalize">{formData.technology || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Material</div>
+                    <div className="text-foreground capitalize">{formData.material.replace("-", " ") || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Color</div>
+                    <div className="text-foreground">{formData.color || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Quantity</div>
+                    <div className="text-foreground">{formData.quantity || 1}</div>
+                  </div>
+                )}
+
+                {/* Step 3: Specifications */}
+                {step >= 3 && (
+                  <div className="pt-4 border-t space-y-1">
+                    <div className="text-sm text-muted-foreground">Infill Density</div>
+                    <div className="text-foreground">{formData.infill}%</div>
+                    <div className="text-sm text-muted-foreground">Layer Height</div>
+                    <div className="text-foreground">{formData.layerHeight} mm</div>
+                    <div className="text-sm text-muted-foreground">Support Type</div>
+                    <div className="text-foreground capitalize">{formData.supportType}</div>
+                  </div>
+                )}
+
+                {/* Step 4: Additional Services */}
+                {step >= 4 && (
+                  <div className="pt-4 border-t space-y-1">
+                    <div className="text-sm text-muted-foreground">Post-Processing Services</div>
+                    {formData.postProcessing.length > 0 ? (
+                      <ul className="list-disc list-inside text-foreground">
+                        {formData.postProcessing.map((service) => (
+                          <li key={service}>{service}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-foreground">None</div>
+                    )}
+                    <div className="text-sm text-muted-foreground">Rush Order</div>
+                    <div className="text-foreground">{formData.rushOrder ? "Yes" : "No"}</div>
+                  </div>
+                )}
+
+                {/* Bottom: Price & Time */}
+                <div className="pt-4 border-t space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    * Final price may vary based on actual file analysis. You'll receive a detailed quote within 24 hours.
+                    * Final price vary based on file analysis. Detailed quote will be sent to your email within 24 hours or view in your dashboard.
                   </p>
                 </div>
               </CardContent>
