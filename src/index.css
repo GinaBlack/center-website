@@ -4942,3 +4942,28 @@ html {
   transform: rotate(0deg) scale(1);
   opacity: 1;
 }
+
+.logout-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  border: 1px solid #ef4444;
+  background: transparent;
+  color: #ef4444;
+  transition: all 0.3s ease;
+}
+
+.logout-icon-btn:hover {
+  background: #ef4444;
+  /* red background */
+  color: #ffffff;
+  /* icon white */
+}
+
+.logout-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

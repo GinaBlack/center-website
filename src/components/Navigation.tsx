@@ -114,7 +114,9 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
             <span className="tracking-tight">{t("navigation.logo")}</span>
           </button>
           <div className="flex justify-between items-center">
+
             {/* Desktop Navigation */}
+
             <div className="hidden lg:flex items-center gap-6">
               {navItems.map((item) => (
                 <button
@@ -135,50 +137,34 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                   )}
                 </button>
               ))}
-
               {isLoggedIn ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" disabled={isAnimating}>
-                      <User className="w-4 h-4 mr-2" />
-                      Account
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => navigateTo("dashboard")}
-                      className={`transition-colors duration-200 ${isActive("dashboard") ? "bg-accent scale-105" : "hover:scale-105"
-                        }`}
-                      disabled={isAnimating}
-                    >
-                      Dashboard
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => navigateTo("submit-project")}
-                      className={`transition-colors duration-200 ${isActive("submit-project") ? "bg-accent scale-105" : "hover:scale-105"
-                        }`}
-                      disabled={isAnimating}
-                    >
-                      Submit Project
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleLogout}
-                      disabled={isAnimating}
-                      className="transition-colors duration-200 hover:scale-105"
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex items-center gap-4">
+                  <Button
+                    size="sm"
+                    variant={isActive("dashboard") ? "black" : "default"}
+                    onClick={() => navigateTo("dashboard")}
+                    disabled={isAnimating}
+                    className={`nav-desktop-btn ${isActive("dashboard") ? "active" : ""}`}
+                  >
+                    <User className="w-4 h-4" />
+                    Account
+                  </Button>
+                  <button
+                    onClick={handleLogout}
+                    disabled={isAnimating}
+                    className="logout-icon-btn"
+                    aria-label="Logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </div>
               ) : (
                 <Button
                   size="lg"
                   onClick={() => navigateTo("login")}
                   variant={isActive("login") ? "default" : "black"}
                   disabled={isAnimating}
-                  className="transition-all duration-300 hover:scale-105 "
+                  className="transition-all duration-300 hover:scale-105"
                 >
                   Login
                 </Button>
@@ -195,6 +181,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                 <Sun className="theme-icon sun" />
                 <Moon className="theme-icon moon" />
               </Button>
+
             </div>
             {/* Mobile Menu Button */}
             <button
