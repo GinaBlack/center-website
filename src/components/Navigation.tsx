@@ -225,7 +225,7 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
                   </button>
                   <Button
                     onClick={handleLogout}
-                    variant="outline"
+                    variant="destructive"
                     className="w-full transition-all duration-300 hover:scale-105 mt-2"
                     disabled={isAnimating}
                   >
