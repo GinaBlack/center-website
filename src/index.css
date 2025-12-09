@@ -781,6 +781,10 @@
     height: 500px;
   }
 
+  .h-\[400px\] {
+    height: 400px;
+  }
+
   .h-\[calc\(100\%-1px\)\] {
     height: calc(100% - 1px);
   }
@@ -954,6 +958,14 @@
 
   .auto-rows-min {
     grid-auto-rows: min-content;
+  }
+
+  .grid-cols-6 {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .grid-cols-2 {
@@ -1550,6 +1562,10 @@
     padding-block: calc(var(--spacing) * 32);
   }
 
+  .pt-2 {
+    padding-top: calc(var(--spacing) * 2);
+  }
+
   .pt-4 {
     padding-top: calc(var(--spacing) * 4);
   }
@@ -1563,13 +1579,16 @@
   }
 
   .pt-64 {
-    padding-top: calc(var(--spacing) *200);
+    padding-top: calc(var(--spacing) *64);
   }
 
   .pt-16 {
     padding-top: calc(var(--spacing) * 16);
   }
 
+  .pt-32 {
+    padding-top: calc(var(--spacing) * 32);
+  }
 
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
@@ -1766,7 +1785,7 @@
   }
 
   .text-white\/90 {
-    color: #ffffff;
+    color: #ffffffe0;
   }
 
   @supports (color: color-mix(in lab, red, red)) {
@@ -2703,6 +2722,8 @@
   --sidebar-accent-foreground: oklch(.205 0 0);
   --sidebar-border: oklch(.922 0 0);
   --sidebar-ring: oklch(.708 0 0);
+  --bg-black: #000000;
+  --text-white: #ffffff;
 }
 
 .dark {
@@ -2722,9 +2743,9 @@
   --accent-foreground: oklch(.985 0 0);
   --destructive: oklch(58.27% 0.23912 29.223);
   --destructive-foreground: oklch(63.78% 0.23729 25.422 / 0.874);
-  --border: oklch(.269 0 0);
+  --border: oklch(100% 0.00011 271.152 / 0.564);
   --input: oklch(.269 0 0);
-  --ring: oklch(.439 0 0);
+  --ring: oklch(94.386% 0.00105 11.551);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --chart-1: oklch(.488 .243 264.376);
@@ -2740,6 +2761,8 @@
   --sidebar-accent-foreground: oklch(.985 0 0);
   --sidebar-border: oklch(.269 0 0);
   --sidebar-ring: oklch(.439 0 0);
+  --bg-black: #ffffff;
+  --text-white: #000000;
 }
 
 
@@ -4729,7 +4752,7 @@ html {
   }
 
   .bg-black\/60 {
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.852);
   }
 
   .bg-white\/10 {

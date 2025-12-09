@@ -340,7 +340,7 @@ function GalleryModal({ item, onClose }: GalleryModalProps) {
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-30 w-8 h-8 glass-effect rounded-full flex items-center justify-center hover:bg-background transition-all hover:scale-110"
+            className="absolute top-4 right-4 z-60 w-8 h-8 glass-effect rounded-full flex items-center justify-center hover:bg-background transition-all hover:scale-110"
             title="Close"
             aria-label="Close modal"
           >

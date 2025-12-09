@@ -2,6 +2,7 @@ import { Mail, Phone, MapPin } from "lucide-react";
 import logo from "../assets/images/logo.png";
 import LanguageSwitcher from '../component/languageSwitcher';
 
+
 export function Footer() {
   const navigateTo = (page: string) => {
     window.location.hash = page;
@@ -90,9 +91,29 @@ export function Footer() {
             </ul>
           </div>
         </div>
-
-        <div className="pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>© 2025 3D Printing High-Tech Center. All rights reserved.</p>
+        <div className="border-t border-background/10 mt-10 pt-6">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-background/50">
+              © 2025 3D Printing High-Tech Center. All rights reserved.
+            </p>
+            <div className="flex gap-6">
+              <div className="flex gap-6">
+                <p >
+                  About
+                </p>
+              </div>
+              <div className="flex gap-6">
+                <p >
+                  Privacy Policy
+                </p>
+              </div>
+              <div className="flex gap-6">
+                <p >
+                  Terms & Conditions
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
