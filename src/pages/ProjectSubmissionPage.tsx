@@ -1,17 +1,17 @@
 import { useState } from "react";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Textarea } from "../components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
-import { Badge } from "../components/ui/badge";
-import { Upload, FileText, Calculator, CheckCircle, AlertCircle } from "lucide-react";
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+import { Badge } from "../../components/ui/badge";
+import { Upload, FileText, Calculator, CheckCircle, AlertCircle, MapPin } from "lucide-react";
 import { toast } from "sonner";
-import { Progress } from "../components/ui/progress";
+import { Progress } from "../../components/ui/progress";
 
 const countryCodes = [
   { code: "+237", name: "Cameroon" },
@@ -33,6 +33,10 @@ export function ProjectSubmissionPage() {
     email: "",
     phone: "",
     countryCode: "+237",
+    shippingAddress: "",
+    city: "",
+    state: "",
+    zipCode: "",
     technology: "",
     material: "",
     color: "",
@@ -86,7 +90,7 @@ export function ProjectSubmissionPage() {
   const handleNextStep = () => {
     // Step 1 Validation
     if (step === 1) {
-      if (!formData.projectName || !formData.name || !formData.email) {
+      if (!formData.projectName || !formData.name || !formData.email || !formData.shippingAddress) {
         toast.error("Please fill in all required fields");
         return;
       }
@@ -96,6 +100,10 @@ export function ProjectSubmissionPage() {
       }
       if (!isValidPhone(formData.phone)) {
         toast.error("Invalid phone number");
+        return;
+      }
+      if (!formData.city || !formData.state) {
+        toast.error("Please provide city and state");
         return;
       }
     }
@@ -130,6 +138,10 @@ export function ProjectSubmissionPage() {
       email: "",
       phone: "",
       countryCode: "+237",
+      shippingAddress: "",
+      city: "",
+      state: "",
+      zipCode: "",
       technology: "",
       material: "",
       color: "",
@@ -225,7 +237,7 @@ export function ProjectSubmissionPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone">Phone</Label>
+                          <Label htmlFor="phone">Phone *</Label>
                           <div className="flex gap-2">
                             <Select
                               value={formData.countryCode}
@@ -249,6 +261,58 @@ export function ProjectSubmissionPage() {
                               onChange={(e) => handleInputChange("phone", e.target.value)}
                               placeholder="Enter number"
                               required
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Shipping Address Section */}
+                      <div className="pt-4 border-t space-y-4">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-5 h-5 text-muted-foreground" />
+                          <h3 className="font-medium">Shipping Address *</h3>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="shippingAddress">Street Address *</Label>
+                          <Textarea
+                            id="shippingAddress"
+                            value={formData.shippingAddress}
+                            onChange={(e) => handleInputChange("shippingAddress", e.target.value)}
+                            placeholder="123 Main Street, Apartment 4B"
+                            rows={2}
+                            required
+                          />
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="city">City *</Label>
+                            <Input
+                              id="city"
+                              value={formData.city}
+                              onChange={(e) => handleInputChange("city", e.target.value)}
+                              placeholder="City"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="state">State/Province *</Label>
+                            <Input
+                              id="state"
+                              value={formData.state}
+                              onChange={(e) => handleInputChange("state", e.target.value)}
+                              placeholder="State or Province"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="zipCode">ZIP/Postal Code</Label>
+                            <Input
+                              id="zipCode"
+                              value={formData.zipCode}
+                              onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                              placeholder="Postal code"
                             />
                           </div>
                         </div>
@@ -586,6 +650,21 @@ export function ProjectSubmissionPage() {
                     <div className="text-foreground">{formData.name || "-"}</div>
                     <div className="text-sm text-muted-foreground">Email</div>
                     <div className="text-foreground">{formData.email || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Phone</div>
+                    <div className="text-foreground">
+                      {formData.phone ? `${formData.countryCode} ${formData.phone}` : "-"}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Shipping Address</div>
+                    <div className="text-foreground">
+                      {formData.shippingAddress ? (
+                        <div>
+                          <div>{formData.shippingAddress}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {formData.city}, {formData.state} {formData.zipCode}
+                          </div>
+                        </div>
+                      ) : "-"}
+                    </div>
                   </div>
                 )}
 
@@ -633,10 +712,10 @@ export function ProjectSubmissionPage() {
                   </div>
                 )}
 
-                {/* Bottom: Price & Time */}
+                {/* Price Estimate Section */}
                 <div className="pt-4 border-t space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    * Final price vary based on file analysis. Detailed quote will be sent to your email within 24 hours or view in your dashboard.
+                    * Final price may vary based on file analysis. Detailed quote will be sent to your email within 24 hours or view in your dashboard.
                   </p>
                 </div>
               </CardContent>
@@ -647,3 +726,4 @@ export function ProjectSubmissionPage() {
     </div>
   );
 }
+export default ProjectSubmissionPage;
