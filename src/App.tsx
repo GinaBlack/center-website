@@ -123,7 +123,7 @@ const App = () => {
                 <Route path="projects">
                   <Route index element={<MyProjects />} />
                   <Route path="upload" element={<UploadProject />} />
-                </Route>/''
+                </Route>
                 <Route path="courses" element={<MyCourses />} />
                 <Route path="book-hall" element={<BookHall />} />
               </Route>
