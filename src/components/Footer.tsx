@@ -14,7 +14,7 @@ export function Footer() {
         <div className="grid md:grid-cols-4 gap-8 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
+              <img src={logo} alt="Logo" className="w-10 h-10 object-contain " />
               <span className="tracking-tight">3D Printing High-Tech Center</span>
 
             </div>
@@ -25,7 +25,7 @@ export function Footer() {
             <h3 className="mb-4">Services</h3>
             <ul className="space-y-1 text-sm text-muted-foreground">
               <li>
-                <button onClick={() => navigateTo("services")} className="hover:text-foreground">
+                <button onClick={() => navigateTo("/services")} className="hover:text-foreground">
                   FDM Printing
                 </button>
               </li>
@@ -119,3 +119,4 @@ export function Footer() {
     </footer>
   );
 }
+export default Footer;

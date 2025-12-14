@@ -1,157 +1,171 @@
-import { Menu, X, User, LogOut, Globe, Moon, Sun } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Menu, X, User, LogOut, Moon, Sun } from "lucide-react";
+import { useState } from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { useTheme } from 'next-themes';
-import { useTranslation } from '../hooks/useTranslation';
+import { useTheme } from "next-themes";
+import { useTranslation } from "../hooks/useTranslation";
+import UserMenu from "./UserMenu";
 import logo from "../assets/images/logo.png";
+import { ROLES } from "../constants/roles";
 
 
-interface NavigationProps {
-  isLoggedIn: boolean;
-  setIsLoggedIn: (value: boolean) => void;
-}
-
-export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
+export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState("home");
   const [isAnimating, setIsAnimating] = useState(false);
-  const [language, setLanguage] = useState("en");
+
   const { theme, setTheme } = useTheme();
-  // Update current page when hash changes
-  useEffect(() => {
-    const updateCurrentPage = () => {
-      const hash = window.location.hash.replace('#', '');
-      setCurrentPage(hash || 'home');
-    };
+  const { t } = useTranslation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-    // Initial update
-    updateCurrentPage();
+  const { isAuthenticated, hasRole, logout } = useAuth();
 
-    // Listen for hash changes
-    window.addEventListener('hashchange', updateCurrentPage);
+  const navItems = [
+    { path: "/", label: t("navigation.home") },
+    { path: "/services", label: t("navigation.services") },
+    { path: "/gallery", label: t("navigation.gallery") },
+    { path: "/submit-project", label: t("navigation.submitProject") },
+    { path: "/learning", label: t("navigation.learning") },
+    { path: "/workshops", label: t("navigation.workshops") },
+    { path: "/about", label: t("navigation.about") },
+    { path: "/contact", label: t("navigation.contact") }
+  ];
 
-    return () => {
-      window.removeEventListener('hashchange', updateCurrentPage);
-    };
-  }, []);
-
-  const navigateTo = async (page: string) => {
-    if (isAnimating || currentPage === page) return;
+  // Smooth page navigation using React Router instead of window.history
+  const navigateTo = async (path) => {
+    if (isAnimating || location.pathname === path) return;
 
     setIsAnimating(true);
 
-    // Add slide-out animation to current content
-    const mainContent = document.querySelector('main');
+    const mainContent = document.querySelector("main");
     if (mainContent) {
-      mainContent.classList.add('opacity-0', 'translate-y-4', 'transition-all', 'duration-300');
+      mainContent.classList.add(
+        "opacity-0",
+        "translate-y-4",
+        "transition-all",
+        "duration-300"
+      );
     }
 
-    // Wait for slide-out animation
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
-    // Change page
-    window.location.hash = page;
-    setCurrentPage(page);
-    setIsMenuOpen(false);
+    navigate(path);
 
-    // Wait for next frame then slide in
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     if (mainContent) {
-      mainContent.classList.remove('opacity-0', 'translate-y-4');
-      mainContent.classList.add('opacity-100', 'translate-y-0');
+      mainContent.classList.remove("opacity-0", "translate-y-4");
+      mainContent.classList.add("opacity-100", "translate-y-0");
     }
 
-    // Reset animation state
     setTimeout(() => {
       setIsAnimating(false);
       if (mainContent) {
-        mainContent.classList.remove('transition-all', 'duration-300', 'opacity-100', 'translate-y-0');
+        mainContent.classList.remove(
+          "transition-all",
+          "duration-300",
+          "opacity-100",
+          "translate-y-0"
+        );
       }
     }, 300);
+
+    // Close mobile menu on navigation
+    setIsMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    navigateTo("home");
+  const isActive = (path) => {
+    return path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
   };
 
-  // helps with translation
-  const { t } = useTranslation();
-
-  const navItems = [
-    { label: t("navigation.home"), page: "home" },
-    { label: t("navigation.services"), page: "services" },
-    { label: t("navigation.gallery"), page: "gallery" },
-    { label: t("navigation.submitProject"), page: "submit-project" },
-    { label: t("navigation.learning"), page: "learning" },
-    { label: t("navigation.workshops"), page: "workshops" },
-    { label: t("navigation.about"), page: "about" },
-    { label: t("navigation.contact"), page: "contact" },
-  ];
-
-  // Helper function to check if item is active
-  const isActive = (page: string) => currentPage === page;
-
-
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* NAV BAR */}
         <div className="flex justify-between items-center h-16">
           <button
-            onClick={() => navigateTo("home")}
+            onClick={() => navigateTo("/")}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity"
           >
-            <img src={logo} alt="Logo" className="w-10 h-10 object-contain " />
+            <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
             <span className="tracking-tight">{t("navigation.logo")}</span>
           </button>
-          <div className="flex justify-between items-center">
 
-            {/* Desktop Navigation */}
-
+          <div className="flex items-center">
+            {/* DESKTOP NAVIGATION */}
             <div className="hidden lg:flex items-center gap-6">
               {navItems.map((item) => (
                 <button
-                  key={item.page}
-                  onClick={() => navigateTo(item.page)}
+                  key={item.path}
+                  onClick={() => navigateTo(item.path)}
                   disabled={isAnimating}
-                  className={`text-sm transition-all duration-300 relative ${isActive(item.page)
-                    ? "text-foreground font-medium scale-105"
-                    : "text-muted-foreground hover:text-foreground hover:scale-105"
-                    } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`relative group text-sm transition-all duration-300 ${
+                    isActive(item.path)
+                      ? "text-foreground font-medium scale-105"
+                      : "text-muted-foreground hover:text-foreground hover:scale-105"
+                  }`}
                 >
                   {item.label}
-                  {isActive(item.page) && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-100 transition-transform duration-300" />
-                  )}
-                  {!isActive(item.page) && (
-                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 transition-transform duration-300 group-hover:scale-x-100" />
-                  )}
+                  <span
+                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-transform duration-300 ${
+                      isActive(item.path)
+                        ? "scale-x-100"
+                        : "scale-x-0 group-hover:scale-x-100"
+                    }`}
+                  />
                 </button>
               ))}
-              {isLoggedIn ? (
+
+              {/* Dashboard */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => navigateTo("/dashboard")}
+                  className={`relative group text-sm transition-all duration-300 ${
+                    isActive("/dashboard")
+                      ? "text-foreground font-medium scale-105"
+                      : "text-muted-foreground hover:text-foreground hover:scale-105"
+                  }`}
+                >
+                  Dashboard
+                </button>
+              )}
+
+              {/* Admin */}
+              {hasRole(ROLES.ADMIN) && (
+                <button
+                  onClick={() => navigateTo("/admin/users")}
+                  className={`relative group text-sm transition-all duration-300 ${
+                    isActive("/admin")
+                      ? "text-red-600 font-medium scale-105"
+                      : "text-red-500 hover:text-red-800 hover:scale-105"
+                  }`}
+                >
+                  Admin
+                </button>
+              )}
+
+              {/* User / Login */}
+              {isAuthenticated ? (
                 <div className="flex items-center gap-4">
                   <Button
                     size="sm"
-                    variant={isActive("dashboard") ? "black" : "default"}
-                    onClick={() => navigateTo("dashboard")}
+                    onClick={() => navigateTo("/dashboard")}
                     disabled={isAnimating}
-                    className={`nav-desktop-btn ${isActive("dashboard") ? "active" : ""}`}
                   >
                     <User className="w-4 h-4" />
                     Account
                   </Button>
+
                   <button
                     onClick={handleLogout}
-                    disabled={isAnimating}
                     className="logout-icon-btn"
                     aria-label="Logout"
                   >
@@ -161,93 +175,109 @@ export function Navigation({ isLoggedIn, setIsLoggedIn }: NavigationProps) {
               ) : (
                 <Button
                   size="lg"
-                  onClick={() => navigateTo("login")}
-                  variant={isActive("login") ? "default" : "black"}
-                  disabled={isAnimating}
+                  onClick={() => navigateTo("/auth/login")}
                   className="transition-all duration-300 hover:scale-105"
                 >
                   Login
                 </Button>
               )}
             </div>
+
+            {/* THEME TOGGLE */}
             <div className="ml-7 mr-2">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                aria-label="Toggle theme"
-                className="theme-toggle-button"
+                onClick={() =>
+                  setTheme(theme === "dark" ? "light" : "dark")
+                }
               >
                 <Sun className="theme-icon sun" />
                 <Moon className="theme-icon moon" />
               </Button>
-
+                              <UserMenu />
             </div>
-            {/* Mobile Menu Button */}
+
+            {/* MOBILE BURGER MENU */}
             <button
               className="lg:hidden p-2 transition-transform duration-300 hover:scale-110"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              disabled={isAnimating}
             >
-              {isMenuOpen ? <X className={isAnimating ? "opacity-50" : ""} /> : <Menu className={isAnimating ? "opacity-50" : ""} />}
+              {isMenuOpen ? <X /> : <Menu />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* MOBILE NAVIGATION */}
         {isMenuOpen && (
           <div className="lg:hidden py-4 border-t">
             <div className="flex flex-col gap-2">
               {navItems.map((item) => (
                 <button
-                  key={item.page}
-                  onClick={() => navigateTo(item.page)}
-                  disabled={isAnimating}
-                  className={`text-left transition-all duration-300 p-3 rounded-lg ${isActive(item.page)
-                    ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
-                    } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
+                  key={item.path}
+                  onClick={() => navigateTo(item.path)}
+                  className={`p-3 rounded-lg text-left transition-all duration-300 ${
+                    isActive(item.path)
+                      ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
+                  }`}
                 >
                   {item.label}
                 </button>
               ))}
-              {isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => navigateTo("dashboard")}
-                    disabled={isAnimating}
-                    className={`text-left transition-all duration-300 p-3 rounded-lg ${isActive("dashboard")
-                      ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
-                      } ${isAnimating ? "opacity-50 cursor-not-allowed" : ""}`}
-                  >
-                    Dashboard
-                  </button>
-                  <Button
-                    onClick={handleLogout}
-                    variant="destructive"
-                    className="w-full transition-all duration-300 hover:scale-105 mt-2"
-                    disabled={isAnimating}
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </Button>
-                </>
+
+              {isAuthenticated && (
+                <button
+                  onClick={() => navigateTo("/dashboard")}
+                  className={`p-3 rounded-lg text-left transition-all duration-300 ${
+                    isActive("/dashboard")
+                      ? "bg-green-100 font-medium scale-105 shadow-sm"
+                      : "hover:bg-accent/50 hover:scale-105"
+                  }`}
+                >
+                  Dashboard
+                </button>
+              )}
+
+              {hasRole(ROLES.ADMIN) && (
+                <button
+                  onClick={() => navigateTo("/admin/users")}
+                  className={`p-3 rounded-lg text-left transition-all duration-300 ${
+                    isActive("/admin")
+                      ? "bg-red-50 text-red-600 scale-105 shadow-sm"
+                      : "text-red-500 hover:bg-red-50/50 hover:scale-105"
+                  }`}
+                >
+                  Admin
+                </button>
+              )}
+
+              {isAuthenticated ? (
+                <Button
+                  onClick={handleLogout}
+                  variant="destructive"
+                  className="mt-2 w-full"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
               ) : (
                 <Button
-                  onClick={() => navigateTo("login")}
-                  className="w-full transition-all duration-300 hover:scale-105"
-                  variant={isActive("login") ? "default" : "black"}
-                  disabled={isAnimating}
+                  onClick={() => navigateTo("/auth/login")}
+                  className="w-full"
                 >
                   Login
                 </Button>
               )}
+
+              <div className="mt-3">
+              </div>
             </div>
           </div>
         )}
-
       </div>
-    </nav >
+    </nav>
   );
 }
+
+export default Navigation;
