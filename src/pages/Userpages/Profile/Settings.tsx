@@ -1,6 +1,6 @@
 import React from 'react';
 
-const EditProfile = () => {
+const Settings = () => {
     return (
         <div>
             <h1>Edit Profile</h1>
@@ -8,4 +8,4 @@ const EditProfile = () => {
     );
 };
 
-export default EditProfile;
+export default Settings;

@@ -1,11 +1,11 @@
 import React from 'react';
 
-const UploadProject = () => {
+const EditProfile = () => {
     return (
         <div>
-            <h1>Upload Project</h1>
+            <h1>Edit profilet</h1>
         </div>
     );
 };
 
-export default UploadProject;
+export default EditProfile;
