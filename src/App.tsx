@@ -107,19 +107,6 @@ const App = () => {
                 <Route path="forgot-password" element={<ForgotPassword />} />
                 <Route path="reset-password" element={<ResetPassword />} />
               </Route>
-
-              {/* ================= DASHBOARD ROUTE ================= */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<RoleBasedDashboard />} />
-
-
               {/* ================= 404 ================= */}
               <Route path="*" element={<NotFound />} />
 
