@@ -40,7 +40,7 @@ import AdminDashboard from './pages/dashboard/AdminDashboardPage';
 // User Pages
 import MyProjects from './pages/Userpages/projects/MyProjects';
 import UploadProject from './pages/Userpages/projects/UploadProject';
-import MyCourses from './pages/Userpages/learning/MyCourses';
+//import MyCourses from './pages/Userpages/learning/MyCourses';
 import BookHall from './pages/Userpages/services/BookHall';
 //import MyBookings from './pages/Userpages/services/MyBookings';
 
@@ -124,7 +124,7 @@ const App = () => {
                   <Route index element={<MyProjects />} />
                   <Route path="upload" element={<UploadProject />} />
                 </Route>
-                <Route path="courses" element={<MyCourses />} />
+          {/* <Route path="courses" element={<MyCourses />} /> */}     
                 <Route path="book-hall" element={<BookHall />} />
               </Route>
 
