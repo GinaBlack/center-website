@@ -9,7 +9,6 @@ import UserMenu from "./UserMenu";
 import logo from "../assets/images/logo.png";
 import { ROLES } from "../constants/roles";
 
-
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -32,7 +31,7 @@ export function Navigation() {
     { path: "/contact", label: t("navigation.contact") }
   ];
 
-  // Smooth page navigation using React Router instead of window.history
+  // Smooth page navigation
   const navigateTo = async (path) => {
     if (isAnimating || location.pathname === path) return;
 
@@ -88,12 +87,12 @@ export function Navigation() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className=" mx-auto px-4 sm:px-6 lg:px-8">
         {/* NAV BAR */}
         <div className="flex justify-between items-center h-16">
           <button
             onClick={() => navigateTo("/")}
-            className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            className="flex items-center  hover:opacity-80 transition-opacity"
           >
             <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
             <span className="tracking-tight">{t("navigation.logo")}</span>
@@ -101,26 +100,27 @@ export function Navigation() {
 
           <div className="flex items-center">
             {/* DESKTOP NAVIGATION */}
-            <div className="hidden lg:flex items-center gap-6">
+            <div className="hidden lg:flex items-center gap-4 ">
               {navItems.map((item) => (
                 <button
                   key={item.path}
                   onClick={() => navigateTo(item.path)}
                   disabled={isAnimating}
-                  className={`relative group text-sm transition-all duration-300 ${
-                    isActive(item.path)
-                      ? "text-foreground font-medium scale-105"
-                      : "text-muted-foreground hover:text-foreground hover:scale-105"
-                  }`}
+                  className={`
+                    relative px-4 py-2 rounded-lg text-sm font-medium
+                    transition-all duration-300 transform
+                    ${isActive(item.path)
+                      ? "bg-black text-white shadow-lg scale-105"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }
+                    hover:scale-105 active:scale-95
+                  `}
                 >
                   {item.label}
-                  <span
-                    className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-transform duration-300 ${
-                      isActive(item.path)
-                        ? "scale-x-100"
-                        : "scale-x-0 group-hover:scale-x-100"
-                    }`}
-                  />
+                  {/* Active indicator dot */}
+                  {isActive(item.path) && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  )}
                 </button>
               ))}
 
@@ -128,13 +128,20 @@ export function Navigation() {
               {isAuthenticated && (
                 <button
                   onClick={() => navigateTo("/dashboard")}
-                  className={`relative group text-sm transition-all duration-300 ${
-                    isActive("/dashboard")
-                      ? "text-foreground font-medium scale-105"
-                      : "text-muted-foreground hover:text-foreground hover:scale-105"
-                  }`}
+                  className={`
+                    relative px-4 py-2 rounded-lg text-sm font-medium
+                    transition-all duration-300 transform
+                    ${isActive("/dashboard")
+                      ? "bg-green-900 text-white shadow-lg scale-105"
+                      : "text-green-600 hover:text-green-800 hover:bg-green-50"
+                    }
+                    hover:scale-105 active:scale-95
+                  `}
                 >
                   Dashboard
+                  {isActive("/dashboard") && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  )}
                 </button>
               )}
 
@@ -142,31 +149,43 @@ export function Navigation() {
               {hasRole(ROLES.ADMIN) && (
                 <button
                   onClick={() => navigateTo("/admin/users")}
-                  className={`relative group text-sm transition-all duration-300 ${
-                    isActive("/admin")
-                      ? "text-red-600 font-medium scale-105"
-                      : "text-red-500 hover:text-red-800 hover:scale-105"
-                  }`}
+                  className={`
+                    relative px-4 py-2 rounded-lg text-sm font-medium
+                    transition-all duration-300 transform
+                    ${isActive("/admin")
+                      ? "bg-red-900 text-white shadow-lg scale-105"
+                      : "text-red-600 hover:text-red-800 hover:bg-red-50"
+                    }
+                    hover:scale-105 active:scale-95
+                  `}
                 >
                   Admin
+                  {isActive("/admin") && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                  )}
                 </button>
               )}
 
               {/* User / Login */}
               {isAuthenticated ? (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 ml-4">
                   <Button
                     size="sm"
                     onClick={() => navigateTo("/dashboard")}
                     disabled={isAnimating}
+                    variant={isActive("/dashboard") ? "default" : "outline"}
+                    className={`
+                      transition-all duration-300
+                      ${isActive("/dashboard") ? "bg-black text-white" : ""}
+                    `}
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-4 h-4 mr-2" />
                     Account
                   </Button>
 
                   <button
                     onClick={handleLogout}
-                    className="logout-icon-btn"
+                    className="p-2 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
                     aria-label="Logout"
                   >
                     <LogOut className="w-4 h-4" />
@@ -174,33 +193,35 @@ export function Navigation() {
                 </div>
               ) : (
                 <Button
-                  size="lg"
+                  size="sm"
                   onClick={() => navigateTo("/auth/login")}
-                  className="transition-all duration-300 hover:scale-105"
+                  className={`
+                    ml-4 transition-all duration-300 hover:scale-105
+                    ${isActive("/auth/login") ? "bg-black text-white" : ""}
+                  `}
                 >
                   Login
                 </Button>
               )}
-            </div>
-
-            {/* THEME TOGGLE */}
-            <div className="ml-7 mr-2">
+            {/* THEME TOGGLE & USER MENU */}
+            <div className="flex items-center  ml-4">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() =>
-                  setTheme(theme === "dark" ? "light" : "dark")
-                }
+                className="rounded-lg"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
                 <Sun className="theme-icon sun" />
                 <Moon className="theme-icon moon" />
               </Button>
-                              <UserMenu />
+             {/*  <UserMenu /> */}
             </div>
+            </div>
+
 
             {/* MOBILE BURGER MENU */}
             <button
-              className="lg:hidden p-2 transition-transform duration-300 hover:scale-110"
+              className="lg:hidden p-2 ml-2 rounded-lg hover:bg-muted transition-colors"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X /> : <Menu />}
@@ -216,39 +237,60 @@ export function Navigation() {
                 <button
                   key={item.path}
                   onClick={() => navigateTo(item.path)}
-                  className={`p-3 rounded-lg text-left transition-all duration-300 ${
-                    isActive(item.path)
-                      ? "text-foreground font-medium bg-accent scale-105 shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:scale-105"
-                  }`}
+                  className={`
+                    p-4 rounded-lg text-left font-medium
+                    transition-all duration-300
+                    flex items-center justify-between
+                    ${isActive(item.path)
+                      ? "bg-black text-white shadow-lg"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }
+                  `}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  {isActive(item.path) && (
+                    <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  )}
                 </button>
               ))}
 
               {isAuthenticated && (
                 <button
                   onClick={() => navigateTo("/dashboard")}
-                  className={`p-3 rounded-lg text-left transition-all duration-300 ${
-                    isActive("/dashboard")
-                      ? "bg-green-100 font-medium scale-105 shadow-sm"
-                      : "hover:bg-accent/50 hover:scale-105"
-                  }`}
+                  className={`
+                    p-4 rounded-lg text-left font-medium
+                    transition-all duration-300
+                    flex items-center justify-between
+                    ${isActive("/dashboard")
+                      ? "bg-green-900 text-white shadow-lg"
+                      : "text-green-600 hover:text-green-800 hover:bg-green-50"
+                    }
+                  `}
                 >
-                  Dashboard
+                  <span>Dashboard</span>
+                  {isActive("/dashboard") && (
+                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  )}
                 </button>
               )}
 
               {hasRole(ROLES.ADMIN) && (
                 <button
                   onClick={() => navigateTo("/admin/users")}
-                  className={`p-3 rounded-lg text-left transition-all duration-300 ${
-                    isActive("/admin")
-                      ? "bg-red-50 text-red-600 scale-105 shadow-sm"
-                      : "text-red-500 hover:bg-red-50/50 hover:scale-105"
-                  }`}
+                  className={`
+                    p-4 rounded-lg text-left font-medium
+                    transition-all duration-300
+                    flex items-center justify-between
+                    ${isActive("/admin")
+                      ? "bg-red-900 text-white shadow-lg"
+                      : "text-red-600 hover:text-red-800 hover:bg-red-50"
+                    }
+                  `}
                 >
-                  Admin
+                  <span>Admin</span>
+                  {isActive("/admin") && (
+                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                  )}
                 </button>
               )}
 
@@ -256,7 +298,7 @@ export function Navigation() {
                 <Button
                   onClick={handleLogout}
                   variant="destructive"
-                  className="mt-2 w-full"
+                  className="mt-4 p-4 w-full rounded-lg font-medium"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
@@ -264,13 +306,38 @@ export function Navigation() {
               ) : (
                 <Button
                   onClick={() => navigateTo("/auth/login")}
-                  className="w-full"
+                  className={`
+                    mt-4 p-4 w-full rounded-lg font-medium
+                    ${isActive("/auth/login") ? "bg-black text-white" : ""}
+                  `}
                 >
                   Login
                 </Button>
               )}
 
-              <div className="mt-3">
+              {/* Mobile theme toggle */}
+              <div className="mt-4 p-4 border-t  pt-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Theme</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="rounded-lg"
+                  >
+                    {theme === "dark" ? (
+                      <>
+                        <Sun className="w-4 h-4 mr-2" />
+                        Light
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="w-4 h-4 mr-2" />
+                        Dark
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

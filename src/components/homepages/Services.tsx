@@ -2,9 +2,9 @@ import { ImageWithFallback } from "../ImgSrc/ImageWithFallback";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import {Button} from "../../components/ui/button";
 import { Award, Boxes, Camera, ToyBrick, CheckCircle, ArrowRight, Printer, Box, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import { } from "lucide-react";
-import { useState } from "react";
+
 
 //service images
 import s1 from  "../../assets/Services/s1.jpg"
@@ -14,49 +14,48 @@ import s4 from  "../../assets/Services/s4.png"
 import s5 from  "../../assets/Services/s5.png"
 import s6 from  "../../assets/Services/s6.jpg"
 import path from "path";
-
 const services = [
   {
     image: s1,
     title: "Rapid Prototyping",
     description: "Realistic, rapid production using a variety of 3D printing technologies and materials.",
     button: "Submit Your Project",
-    path: "contact"
+    path: "/submit-project" 
   },
   {
     image: s2,
     title: "Production Parts",
     description: "Scalable manufacturing solutions for end-use parts with industrial-grade materials and finishes.",
     button: "Submit Your Project",
-    path: "contact"
+    path: "/submit-project"
   },
   {
     image: s3,
     title: "Trainings",
     description: "Beginner to advanced level training programs in 3D printing, CAD, and High-Tech.",
     button: "View Our Training Courses",
-    path: "contact"
+    path: "/workshops" 
   },
   {
     image: s4,
     title: "Post Processing",
     description: "Comprehensive post-processing services to achieve the desired finish.",
-    button: "See Available  Options",
-    path: "contact"
+    button: "See Available Options",
+    path: "/services" // Updated to use actual route path
   },
   {
     image: s5,
     title: "Design Support",
     description: "Expert guidance to optimize your designs for 3D printing and manufacturability.",
     button: "Get Design Assistance",
-    path: "contact"
+    path: "/contact"
   },
   {
     image: s6,
     title: "3D Scanning",
     description: "High-precision 3D scanning services for reverse engineering, quality control, and digital archiving.",
     button: "Request a Scan",
-    path: "contact"
+    path: "/contact"
   },
 ];
 
@@ -65,36 +64,36 @@ const assets = [
     icon: Printer,
     title: "3D Printers",
     description: "20+ industrial-grade 3D printers utilizing FDM, SLA, SLS, and PolyJet technologies to cater to diverse prototyping and production needs.",
-    button: "SeePrinters",
-    path: "contact"
+    button: "See Printers",
+    path: "/gallery" // Updated to use actual route path
   },
   {
     icon: Boxes,
     title: "Materials",
     description: "25+ material options including various thermoplastics, resins, and composites to suit different application requirements and in a variety of colours.",
     button: "See Materials",
-    path: "contact"
+    path: "/materials"
   },
   {
     icon: Home,
     title: "Rental Spaces",
-    description: "Equipped workstations, Availaible Halls for Seminars, Meeting, Workshops, Research, and Team projects with 24/7 access to our facility and expert support.",
+    description: "Equipped workstations, Available Halls for Seminars, Meeting, Workshops, Research, and Team projects with 24/7 access to our facility and expert support.",
     button: "Rent Now",
-    path: "contact"
+    path: "/contact"
   },
   {
     icon: Camera,
     title: "3D Scanners",
     description: "2+ high-precision 3D scanners for accurate digital capture of physical objects, ideal for reverse engineering and quality inspection.",
     button: "See Scanners",
-    path: "contact"
+    path: "/gallery"
   },
   {
     icon: Award,
     title: "Certifications",
     description: "Recognized certifications in 3D printing technologies and design software, ensuring high standards of quality and expertise.",
-    button: "View Trainning Certifications",
-    path: "contact"
+    button: "View Training Certifications",
+    path: "/learning"
   },
 ];
 
@@ -112,19 +111,11 @@ const technologies = [
 ];
 export function Services() {
 
-    const [expandedService, setExpandedService] = useState<string | null>(null);
-    const navigateTo = (page: string) => {
-      window.location.hash = page;
-    };
+  const navigate = useNavigate(); 
   
-    const toggleExpand = (serviceId: string) => {
-      if (expandedService === serviceId) {
-        setExpandedService(null);
-      } else {
-        setExpandedService(serviceId);
-      }
-    };
-  
+  const navigateTo = (path: string) => {
+    navigate(path); 
+  };
   return (
     <>
     <section id="services" className="py-8 lg:py-8 bg-muted/50">
