@@ -7,19 +7,19 @@ const UserDashboard = () => {
   const { userData } = useAuth();
 
   return (
-    <div>
+    <div className='py-20 p-8 bg-background/95 w-full'>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-lgx font-bold text-gray-900">
           Welcome back, {userData?.displayName}!
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 text-smx">
           Here's what's happening with your 3D printing projects today.
         </p>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
+      <div className=" flex items-center justify-center grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-card p-6 border-2 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-2">My Projects</h3>
           <p className="text-3xl font-bold">0</p>
           <Link to="/dashboard/projects" className="text-blue-600 hover:underline text-sm">
@@ -27,7 +27,7 @@ const UserDashboard = () => {
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-card p-6 border-2 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-2">Active Courses</h3>
           <p className="text-3xl font-bold">0</p>
           <Link to="/dashboard/courses" className="text-blue-600 hover:underline text-sm">
@@ -35,7 +35,7 @@ const UserDashboard = () => {
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-card p-6 border-2 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-2">Upcoming Bookings</h3>
           <p className="text-3xl font-bold">0</p>
           <Link to="/dashboard/my-bookings" className="text-blue-600 hover:underline text-sm">

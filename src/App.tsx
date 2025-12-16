@@ -38,12 +38,17 @@ import InstructorDashboard from './pages/dashboard/InstructorDash';
 import AdminDashboard from './pages/dashboard/AdminDashboardPage';
 
 // User Pages
-import Overview from './pages/Userpages/Main';
 import MyProjects from './pages/Userpages/projects/MyProjects';
 import UploadProject from './pages/Userpages/projects/UploadProject';
 import MyCourses from './pages/Userpages/Learning/MyCourses';
 import BookHall from './pages/Userpages/Services/BookHall';
 import MyBookings from './pages/Userpages/Services/MyBookings';
+import UserNotifications from './pages/Userpages/Profile/Notifications';
+import Profile from './pages/Userpages/Profile/Profile'
+import ChangePassword from './pages/Userpages/Profile/ChangePassword';
+import EditProfile from './pages/Userpages/Profile/EditProfile';
+import Settings from './pages/Userpages/Profile/SettingsPage'
+import Help from './pages/Userpages/Profile/Help'
 
 // Instructor Pages
 import MyInstructorCourses from './pages/Lecturerpages/MyCourse';
@@ -64,6 +69,7 @@ import ContactMessages from './pages/Adminpages/ContactMessages';
 // Error Pages
 import Unauthorized from './pages/Errors/Unauthorised';
 import NotFound from './pages/Errors/NotFound';
+import { User } from 'lucide-react';
 
 // Role-Based Dashboard Component
 const RoleBasedDashboard = () => {
@@ -125,9 +131,18 @@ const App = () => {
                   <Route index element={<MyProjects />} />
                   <Route path="upload" element={<UploadProject />} />
                 </Route>
-                <Route path="courses" element={<MyCourses />} />
                 <Route path="book-hall" element={<BookHall />} />
                 <Route path="bookings" element={<MyBookings/>} />
+                <Route path="courses" element={<MyCourses />} />
+                <Route path="notifications" element={<UserNotifications/>}/>
+                <Route path="profile">
+                  <Route index element={<Profile/>} />
+                  <Route path="upload" element={<ChangePassword />} />
+                  <Route path="editprofile" element={<EditProfile/>} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="help" element={<Help/>}/>
+                </Route>
+              
               </Route>
 
               {/* ================= INSTRUCTOR ROUTES ================= */}

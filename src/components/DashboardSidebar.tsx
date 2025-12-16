@@ -57,9 +57,9 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
         { to: '/dashboard', label: 'Overview', icon: <LayoutDashboard size={20} /> },
         { to: '/dashboard/projects', label: 'My Projects', icon: <FolderKanban size={20} /> },
         { to: '/dashboard/courses', label: 'My Courses', icon: <BookOpen size={20} /> },
+        { to: '/dashboard/bookings', label: 'My Bookings', icon: <Calendar size={20} /> },
         { to: '/dashboard/book-hall', label: 'Book Hall', icon: <Building size={20} /> },
-        { to: '/dashboard/my-bookings', label: 'My Bookings', icon: <Calendar size={20} /> },
-        { to: '/dashboard/submissions', label: 'Submissions', icon: <FileText size={20} /> },
+        { to: '/dashboard/projects/upload', label: 'Submissions', icon: <FileText size={20} /> },
         { to: '/dashboard/notifications', label: 'Notifications', icon: <Bell size={20} /> },
     ];
 
@@ -83,9 +83,9 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
 
     const quickLinks = [
         { to: '/', label: 'Home', icon: <Home size={20} /> },
-        { to: '/profile', label: 'Profile', icon: <User size={20} /> },
-        { to: '/settings', label: 'Settings', icon: <Settings size={20} /> },
-        { to: '/help', label: 'Help', icon: <HelpCircle size={20} /> },
+        { to: '/dashboard/profile', label: 'Profile', icon: <User size={20} /> },
+        { to: '/dashboard/profile/settings', label: 'Settings', icon: <Settings size={20} /> },
+        { to: '/dashboard/profile/help', label: 'Help', icon: <HelpCircle size={20} /> },
     ];
 
     // Toggle functions
@@ -111,7 +111,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                         location.pathname.startsWith(link.to + '/');
         
         const sectionColors = {
-            user: { active: 'bg-blue-50 text-blue-700 border-l-4 border-blue-600', icon: 'text-blue-600' },
+            user: { active: 'bg-blue-500 text-blue-700 border-l-4 border-blue-600', icon: 'text-gray-200' },
             instructor: { active: 'bg-purple-50 text-purple-700 border-l-4 border-purple-600', icon: 'text-purple-600' },
             admin: { active: 'bg-red-50 text-red-700 border-l-4 border-red-600', icon: 'text-red-600' }
         };
@@ -123,7 +123,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                     flex items-center px-3 py-3 rounded-lg transition-all duration-200
                     ${isActive 
                         ? sectionColors[section].active
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }
                     ${sidebarCollapsed ? 'justify-center px-2' : ''}
                 `}
@@ -329,7 +329,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
                                 <Award size={20} className="text-white" />
                             </div>
-                            <span className="text-lg font-bold text-gray-900">Menu</span>
+                            <span className="text-smfont-bold text-gray-900">Menu</span>
                         </div>
                         <button
                             onClick={() => setMobileMenuOpen(false)}
@@ -395,7 +395,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                     </div>
 
                     {/* Mobile Footer */}
-                    <div className="border-t border-gray-200 p-4">
+                    <div className="border-t border-gray-300 p-4">
                         <div className="space-y-1 mb-4">
                             {quickLinks.map(link => (
                                 <NavLink

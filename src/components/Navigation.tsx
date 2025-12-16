@@ -24,9 +24,6 @@ export function Navigation() {
     { path: "/", label: t("navigation.home") },
     { path: "/services", label: t("navigation.services") },
     { path: "/gallery", label: t("navigation.gallery") },
-    { path: "/submit-project", label: t("navigation.submitProject") },
-    { path: "/learning", label: t("navigation.learning") },
-    { path: "/workshops", label: t("navigation.workshops") },
     { path: "/about", label: t("navigation.about") },
     { path: "/contact", label: t("navigation.contact") }
   ];
@@ -184,14 +181,34 @@ export function Navigation() {
                     transition-all duration-300
                     flex items-center justify-between
                     ${isActive("/dashboard")
-                      ? "bg-green-900 text-white shadow-lg"
-                      : "text-green-600 hover:text-green-800 hover:bg-green-50"
+                      ? "bg-blue-500 text-white shadow-lg"
+                      : "text-blue-500 hover:text-white hover:bg-green-50"
                     }
                   `}
                 >
                   <span>Dashboard</span>
                   {isActive("/dashboard") && (
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+                  )}
+                </button>
+              )}
+
+             {hasRole(ROLES.INSTRUCTOR) && (
+                <button
+                  onClick={() => navigateTo("/instructor")}
+                  className={`
+                    p-4 rounded-lg text-left font-medium
+                    transition-all duration-300
+                    flex items-center justify-between
+                    ${isActive("/instructor")
+                      ? "bg-red-900 text-white shadow-lg"
+                      : "text-red-600 hover:text-red-800 hover:bg-red-50"
+                    }
+                  `}
+                >
+                  <span>Instructor</span>
+                  {isActive("/admin") && (
+                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
                   )}
                 </button>
               )}
