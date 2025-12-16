@@ -40,24 +40,24 @@ import AdminDashboard from './pages/dashboard/AdminDashboardPage';
 // User Pages
 import MyProjects from './pages/Userpages/projects/MyProjects';
 import UploadProject from './pages/Userpages/projects/UploadProject';
-import MyCourses from './pages/Userpages/learning/MyCourses';
-import BookHall from './pages/Userpages/services/BookHall';
-//import MyBookings from './pages/Userpages/services/MyBookings';
+import MyCourses from './pages/Userpages/Learning/MyCourses';
+import BookHall from './pages/Userpages/Services/BookHall';
+import MyBookings from './pages/Userpages/Services/MyBookings';
 
 // Instructor Pages
 import MyInstructorCourses from './pages/Lecturerpages/MyCourse';
 import CreateCourse from './pages/Lecturerpages/CreateCourse';
-//import CourseStudents from './pages/Lecturer Dash pages/CourseStudents';
-//import MyMaterials from './pages/Lecturer Dash pages/MyMaterials';
+import CourseStudents from './pages/Lecturerpages/CourseStudents';
+import MyMaterials from './pages/Lecturerpages/MyMaterials';
 
 // Admin Pages
 import UserManagement from './pages/Adminpages/UserManagement';
 import ProjectManagement from './pages/Adminpages/ContentManagement/ProjectManagement';
-//import CourseManagement from './pages/Admin Dash pages/ContentManagement/CourseManagement';
-//import MaterialManagement from './pages/Admin Dash pages/ContentManagement/MaterialManagement';
-//import BookingManagement from './pages/Admin Dash pages/BookingManagement';
-//import GalleryManagement from './pages/Admin Dash pages/ContentManagement/GalleryManagement';
-//import ContactMessages from './pages/Admin Dash pages/ContactMessages';
+import CourseManagement from './pages/Adminpages/ContentManagement/CourseManagement';
+import MaterialManagement from './pages/Adminpages/ContentManagement/MaterialManagement';
+import BookingManagement from './pages/Adminpages/BookingManagement';
+import GalleryManagement from './pages/Adminpages/ContentManagement/GalleryManagement';
+import ContactMessages from './pages/Adminpages/ContactMessages';
 
 
 // Error Pages
@@ -126,6 +126,7 @@ const App = () => {
                 </Route>
                 <Route path="courses" element={<MyCourses />} />
                 <Route path="book-hall" element={<BookHall />} />
+                <Route path="bookings" element={<MyBookings/>} />
               </Route>
 
               {/* ================= INSTRUCTOR ROUTES ================= */}
@@ -140,6 +141,8 @@ const App = () => {
                 <Route path="courses">
                   <Route index element={<MyInstructorCourses />} />
                   <Route path="create" element={<CreateCourse />} />
+                  <Route path="students" element={<CourseStudents />} />
+                <Route path="my-materials" element={<MyMaterials />} />
                 </Route>
               </Route>
 
@@ -154,6 +157,12 @@ const App = () => {
               >
                 <Route path="users" element={<UserManagement />} />
                 <Route path="projects" element={<ProjectManagement />} />
+                <Route path="courses" element={<CourseManagement />} />
+                <Route path="materials" element={<MaterialManagement />} />
+                <Route path="bookings" element={<BookingManagement/>} />
+                <Route path="projects" element={<ProjectManagement />} />
+                <Route path="gallery" element={<GalleryManagement/>} />
+                <Route path="messages" element={<ContactMessages />} />
               </Route>
               
               {/* ================= 404 ================= */}

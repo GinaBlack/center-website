@@ -10,3 +10,4 @@ export function MyCourses() {
     </div>
   );
 }
+export default MyCourses;
