@@ -1,6 +1,7 @@
 import React from 'react';
 
-const MyCourses = () => {
+export function MyCourses() {
+
   return (
     <div>
       <h1>My Courses</h1>
@@ -8,6 +9,4 @@ const MyCourses = () => {
       {/* Add your courses content here */}
     </div>
   );
-};
-
-export default MyCourses;
+}

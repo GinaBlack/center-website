@@ -124,7 +124,6 @@ const App = () => {
                   <Route index element={<MyProjects />} />
                   <Route path="upload" element={<UploadProject />} />
                 </Route>
-
                 <Route path="courses" element={<MyCourses />} />
                 <Route path="book-hall" element={<BookHall />} />
               </Route>
