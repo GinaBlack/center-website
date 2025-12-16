@@ -157,33 +157,44 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
 
     // Desktop Sidebar
     const DesktopSidebar = () => (
-        <div className="h-screen bg-white py-20 border-r border-gray-200 flex flex-col">
+        <div className="h-full  bg-border  border-r border-gray-400 flex flex-col ">
             {/* Sidebar Header */}
-            <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
+            <div className="h-40 py-20 pt-40  border-b border-gray-300 flex items-center justify-between px-4">
                 {!sidebarCollapsed ? (
                     <>
-                        <div className="flex items-center">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
-                                <Award size={20} className="text-white" />
+                        {/* User Profile */}
+                        {!sidebarCollapsed && (
+                            <div className="p-8 mb-4  rounded-lg">
+                                <div className="grid flex items-center">
+                                    <div className="w-25 h-25 gradient-black-to-gray rounded-full flex items-center justify-center text-white text-lgx font-bold">
+                                        {userInitial}
+                                    </div>
+                                    <div className=" grid flex items-center justify-center ">
+                                        <h3 className="font-semibold text-gray-900 text-smx">{userName}</h3>
+                                        <p className="text-sm text-gray-600">
+                                            {hasRole(ROLES.ADMIN) ? 'Administrator' : 
+                                             hasRole(ROLES.INSTRUCTOR) ? 'Instructor' : 'User'}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                            <span className="text-lg font-bold text-gray-900">Dashboard</span>
-                        </div>
+                        )}
                         <button
                             onClick={() => setSidebarCollapsed(true)}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
+                            className=" hover:bg-gray-100 rounded-lg "
                             title="Collapse sidebar"
                         >
-                            <ChevronLeft size={20} />
+                            <ChevronLeft size={25} />
                         </button>
                     </>
                 ) : (
                     <div className="w-full flex justify-center">
                         <button
                             onClick={() => setSidebarCollapsed(false)}
-                            className="p-2 hover:bg-gray-100 rounded-lg"
+                            className=" hover:bg-gray-100 rounded-lg"
                             title="Expand sidebar"
                         >
-                            <ChevronRight size={20} />
+                            <ChevronRight size={25} />
                         </button>
                     </div>
                 )}
@@ -191,34 +202,12 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
 
             {/* Sidebar Content */}
             <div className="flex-1 overflow-y-auto py-4 px-3">
-                {/* User Profile */}
-                {!sidebarCollapsed && (
-                    <div className="p-4 mb-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white font-bold">
-                                {userInitial}
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="font-semibold text-gray-900 text-sm">{userName}</h3>
-                                <p className="text-xs text-gray-600">
-                                    {hasRole(ROLES.ADMIN) ? 'Administrator' : 
-                                     hasRole(ROLES.INSTRUCTOR) ? 'Instructor' : 'User'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
+               
 
                 {/* Navigation Sections */}
                 <div className="space-y-4">
                     {/* User Links */}
                     <div>
-                        <SectionHeader
-                            title="Dashboard"
-                            icon={<LayoutDashboard size={18} className="text-gray-500" />}
-                            isExpanded={expandedSections.user}
-                            onToggle={() => toggleSection('user')}
-                        />
                         {expandedSections.user && (
                             <div className="mt-2 space-y-1">
                                 {userLinks.map(link => (
@@ -269,7 +258,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
             </div>
 
             {/* Sidebar Footer */}
-            <div className="border-t border-gray-200 p-4">
+            <div className="border-t border-gray-300 p-4">
                 {!sidebarCollapsed ? (
                     <>
                         <div className="space-y-1 mb-4">
@@ -286,7 +275,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                         </div>
                         <button
                             onClick={handleLogout}
-                            className="w-full flex items-center justify-center px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+                            className="w-full flex items-center justify-center px-3 py-2 text-sm text-red-500 hover:bg-red-500 hover:text-white "
                         >
                             <LogOut size={16} />
                             <span className="ml-2">Logout</span>
@@ -296,7 +285,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                     <div className="flex justify-center">
                         <button
                             onClick={handleLogout}
-                            className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+                            className="p-2 text-red-500 hover:bg-gray-50 rounded-lg"
                             title="Logout"
                         >
                             <LogOut size={20} />
@@ -345,6 +334,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
                         <button
                             onClick={() => setMobileMenuOpen(false)}
                             className="p-2 hover:bg-gray-100 rounded-lg"
+                            title="SetMobileMenu"
                         >
                             <X size={20} />
                         </button>

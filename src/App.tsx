@@ -38,6 +38,7 @@ import InstructorDashboard from './pages/dashboard/InstructorDash';
 import AdminDashboard from './pages/dashboard/AdminDashboardPage';
 
 // User Pages
+import Overview from './pages/Userpages/Main';
 import MyProjects from './pages/Userpages/projects/MyProjects';
 import UploadProject from './pages/Userpages/projects/UploadProject';
 import MyCourses from './pages/Userpages/Learning/MyCourses';
@@ -108,7 +109,7 @@ const App = () => {
                 <Route path="reset-password" element={<ResetPassword />} />
               </Route>
 
-              {/* ================= DASHBOARD ROUTE ================= */}
+              {/* ================= USER DASHBOARD ROUTE ================= */}
               <Route
                 path="/dashboard"
                 element={
