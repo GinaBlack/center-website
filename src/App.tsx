@@ -36,11 +36,11 @@ import ResetPassword from './pages/Authpages/ResetPassword';
 import UserDashboard from './pages/dashboard/UserDashboardPage';
 import InstructorDashboard from './pages/dashboard/InstructorDash';
 import AdminDashboard from './pages/dashboard/AdminDashboardPage';
-/*
+
 // User Pages
 import MyProjects from './pages/Userpages/projects/MyProjects';
 import UploadProject from './pages/Userpages/projects/UploadProject';
-//import MyCourses from './pages/Userpages/learning/MyCourses';
+import MyCourses from './pages/Userpages/learning/MyCourses';
 import BookHall from './pages/Userpages/services/BookHall';
 //import MyBookings from './pages/Userpages/services/MyBookings';
 
@@ -59,7 +59,7 @@ import ProjectManagement from './pages/Adminpages/ContentManagement/ProjectManag
 //import GalleryManagement from './pages/Admin Dash pages/ContentManagement/GalleryManagement';
 //import ContactMessages from './pages/Admin Dash pages/ContactMessages';
 
-*/
+
 // Error Pages
 import Unauthorized from './pages/Errors/Unauthorised';
 import NotFound from './pages/Errors/NotFound';
@@ -107,6 +107,56 @@ const App = () => {
                 <Route path="forgot-password" element={<ForgotPassword />} />
                 <Route path="reset-password" element={<ResetPassword />} />
               </Route>
+
+              {/* ================= DASHBOARD ROUTE ================= */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<RoleBasedDashboard />} />
+
+                {/* User Routes (accessible by all logged-in users) */}
+                <Route path="projects">
+                  <Route index element={<MyProjects />} />
+                  <Route path="upload" element={<UploadProject />} />
+                </Route>
+
+                <Route path="courses" element={<MyCourses />} />
+                <Route path="book-hall" element={<BookHall />} />
+              </Route>
+
+              {/* ================= INSTRUCTOR ROUTES ================= */}
+              <Route
+                path="/instructor"
+                element={
+                  <InstructorRoute>
+                    <DashboardLayout />
+                  </InstructorRoute>
+                }
+              >
+                <Route path="courses">
+                  <Route index element={<MyInstructorCourses />} />
+                  <Route path="create" element={<CreateCourse />} />
+                </Route>
+              </Route>
+
+              {/* ================= ADMIN ROUTES ================= */}
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <DashboardLayout />
+                  </AdminRoute>
+                }
+              >
+                <Route path="users" element={<UserManagement />} />
+                <Route path="projects" element={<ProjectManagement />} />
+              </Route>
+              
               {/* ================= 404 ================= */}
               <Route path="*" element={<NotFound />} />
 
@@ -118,4 +168,3 @@ const App = () => {
   );
 };
 export default App;
-

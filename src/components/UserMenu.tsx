@@ -1,12 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/button";
+
 
 const UserMenu = () => {
   const { currentUser, userData, logout } = useAuth();
   const navigate = useNavigate();
+  const navigateTo = (path: string) => {
+    navigate(path); 
+  }
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  const isActive = (path) => {
+    return path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,19 +40,16 @@ const UserMenu = () => {
   if (!currentUser) {
     return (
       <div className="flex items-center gap-2">
-        <Link
-          to="/auth/login"
-          className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600"
+        <Button
+          size="sm"
+          onClick={() => navigateTo("/auth/login")}
+          className={`
+            ml-4 transition-all duration-300 hover:scale-105
+            ${isActive("/auth/login") ? "default" : "black"}
+                  `}
         >
           Login
-        </Link>
-
-        <Link
-          to="/auth/register"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
-        >
-          Sign Up
-        </Link>
+        </Button>
       </div>
     );
   }
@@ -62,7 +70,7 @@ const UserMenu = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border py-1 z-50">
+        <div className="absolute right-0 mt-2 w-48  bg-gray-100 rounded shadow-lg border py-1 z-50">
           <div className="px-4 py-2 border-b">
             <p className="font-medium">{userData?.displayName || "User"}</p>
             <p className="text-sm text-gray-500">{userData?.email || ""}</p>

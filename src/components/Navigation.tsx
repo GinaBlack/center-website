@@ -124,85 +124,8 @@ export function Navigation() {
                 </button>
               ))}
 
-              {/* Dashboard */}
-              {isAuthenticated && (
-                <button
-                  onClick={() => navigateTo("/dashboard")}
-                  className={`
-                    relative px-4 py-2 rounded-lg text-sm font-medium
-                    transition-all duration-300 transform
-                    ${isActive("/dashboard")
-                      ? "bg-green-900 text-white shadow-lg scale-105"
-                      : "text-green-600 hover:text-green-800 hover:bg-green-50"
-                    }
-                    hover:scale-105 active:scale-95
-                  `}
-                >
-                  Dashboard
-                  {isActive("/dashboard") && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  )}
-                </button>
-              )}
+              <UserMenu />
 
-              {/* Admin */}
-              {hasRole(ROLES.ADMIN) && (
-                <button
-                  onClick={() => navigateTo("/admin/users")}
-                  className={`
-                    relative px-4 py-2 rounded-lg text-sm font-medium
-                    transition-all duration-300 transform
-                    ${isActive("/admin")
-                      ? "bg-red-900 text-white shadow-lg scale-105"
-                      : "text-red-600 hover:text-red-800 hover:bg-red-50"
-                    }
-                    hover:scale-105 active:scale-95
-                  `}
-                >
-                  Admin
-                  {isActive("/admin") && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-                  )}
-                </button>
-              )}
-
-              {/* User / Login */}
-              {isAuthenticated ? (
-                <div className="flex items-center gap-3 ml-4">
-                  <Button
-                    size="sm"
-                    onClick={() => navigateTo("/dashboard")}
-                    disabled={isAnimating}
-                    variant={isActive("/dashboard") ? "default" : "outline"}
-                    className={`
-                      transition-all duration-300
-                      ${isActive("/dashboard") ? "bg-black text-white" : ""}
-                    `}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Account
-                  </Button>
-
-                  <button
-                    onClick={handleLogout}
-                    className="p-2 rounded-lg bg-destructive/10 hover:bg-destructive/20 text-destructive transition-colors"
-                    aria-label="Logout"
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  onClick={() => navigateTo("/auth/login")}
-                  className={`
-                    ml-4 transition-all duration-300 hover:scale-105
-                    ${isActive("/auth/login") ? "bg-black text-white" : ""}
-                  `}
-                >
-                  Login
-                </Button>
-              )}
             {/* THEME TOGGLE & USER MENU */}
             <div className="flex items-center  ml-4">
               <Button
@@ -214,7 +137,6 @@ export function Navigation() {
                 <Sun className="theme-icon sun" />
                 <Moon className="theme-icon moon" />
               </Button>
-             {/*  <UserMenu /> */}
             </div>
             </div>
 

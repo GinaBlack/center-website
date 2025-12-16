@@ -7,10 +7,17 @@ import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { doSignInWithEmailAndPassword, doSignInWithGoogle} from "../../firebase/auth";
+
+
 
 export function LoginPage() {
+  const { userLoggedIn } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isSigningIn, setIsSigningIn] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,6 +54,10 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if(!isSigningIn){
+      setIsSigningIn(true)
+      await doSignInWithEmailAndPassword(email, password)
+    }
 
     // Basic validation
     if (!email || !password) {
@@ -59,54 +70,67 @@ export function LoginPage() {
       return;
     }
 
+    
+    
     setLoading(true);
-
+    
     // If using AuthContext with proper login function
     if (login) {
       const result = await login(email, password);
-
-    if (login) {
+      
+      if (login) {
         try {
-            const result = await login(email, password);
-            // Login successful - you can access result.user
-            setLoading(false);
-            // Redirect or do something after successful login
+          const result = await login(email, password);
+          // Login successful - you can access result.user
+          setLoading(false);
+          // Redirect or do something after successful login
         } catch (error: any) {
-            setError(error.message || "Login failed");
-            toast.error(error.message || "Login failed");
-            setLoading(false);
-            return;
+          setError(error.message || "Login failed");
+          toast.error(error.message || "Login failed");
+          setLoading(false);
+          return;
         }
-    }
-
+      }
+      
       // Login successful - Redirect handled by AuthContext usually, but forcing here just in case
       if (userData) {
         switch (userData.role) {
           case 'admin':
             navigate("/admin/dashboard");
             break;
-          case 'instructor':
-            navigate("/instructor/dashboard");
-            break;
-          default:
-            navigate("/dashboard");
-            break;
+            case 'instructor':
+              navigate("/instructor/dashboard");
+              break;
+              default:
+                navigate("/dashboard");
+                break;
+              }
+            } else {
+              // Fallback to dashboard if userData not available immediately (might need another effect or wait)
+              navigate("/dashboard");
+            }
+            
+            toast.success("Login successful!");
+          } else {
+            // Fallback to mock login if AuthContext not available
+            await handleMockLogin();
+          }
+          
+          setLoading(false);
+        };
+        
+        
+        const onGoogleSignIn = (e) => {
+            e.preventDefault()
+            if (!isSigningIn) {
+                setIsSigningIn(true)
+                doSignInWithGoogle().catch(err => {
+                    setIsSigningIn(false)
+                })
+            }
         }
-      } else {
-        // Fallback to dashboard if userData not available immediately (might need another effect or wait)
-        navigate("/dashboard");
-      }
 
-      toast.success("Login successful!");
-    } else {
-      // Fallback to mock login if AuthContext not available
-      await handleMockLogin();
-    }
-
-    setLoading(false);
-  };
-
-  // Mock login function as fallback
+      // Mock login function as fallback
   const handleMockLogin = async () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -124,6 +148,9 @@ export function LoginPage() {
   };
 
   return (
+    <>
+    {/*{userLoggedIn && (<Navigate to={'/'} replace={true} />)} */}
+    
     <div className="login-container">
       <div className="login-overlay">
         <div className="login-content">
@@ -263,6 +290,7 @@ export function LoginPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
