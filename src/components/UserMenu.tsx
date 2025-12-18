@@ -87,7 +87,7 @@ const UserMenu = () => {
           <Link
             to="/dashboard/profile"
             onClick={() => setIsOpen(false)}
-            className="block px-4 py-2 hover:bg-gray-100"
+            className="block px-4 py-2 "
           >
             Profile
           </Link>
@@ -95,7 +95,7 @@ const UserMenu = () => {
           <div className="border-t">
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50"
+              className="w-full text-left px-4 py-2 text-red-500 "
             >
               Logout
             </button>

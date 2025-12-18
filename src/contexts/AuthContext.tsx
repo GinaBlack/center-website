@@ -1,11 +1,11 @@
-import { 
-  createContext, 
-  useContext, 
-  useEffect, 
-  useState 
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState
 } from "react";
-import { 
-  onAuthStateChanged, 
+import {
+  onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -14,7 +14,7 @@ import {
   User,
   UserCredential,
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase_config";
 import { ROLES } from "../constants/roles";
 
@@ -26,132 +26,80 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const login = async (email: string, password: string): Promise<UserCredential> => {
-    try {
-      return await signInWithEmailAndPassword(auth, email, password);
-    } catch (error: any) {
-      console.error("Login error:", error);
-      throw error;
+  const login = (email: string, password: string) =>
+    signInWithEmailAndPassword(auth, email, password);
+
+  const register = async (email: string, password: string, additionalData: any) => {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const user = cred.user;
+
+    if (additionalData.displayName) {
+      await updateProfile(user, { displayName: additionalData.displayName });
     }
-  };
 
-  const register = async (email: string, password: string, additionalData: any): Promise<void> => {
-    try {
-      // 1. Create user with email and password
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+    await sendEmailVerification(user);
 
-      // 2. Update profile with display name if provided
-      if (additionalData.displayName) {
-        await updateProfile(user, {
-          displayName: additionalData.displayName
-        });
-      }
-
-      // 3. Send email verification
-      await sendEmailVerification(user);
-
-      // 4. Create user document in Firestore
-      const userDataToStore = {
-        uid: user.uid,
-        email: user.email,
-        emailVerified: user.emailVerified,
-        displayName: additionalData.displayName || "",
-        role: additionalData.role || ROLES.USER,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // Include any additional data
-        ...additionalData
-      };
-
-      await setDoc(doc(db, "users", user.uid), userDataToStore);
-      
-      // 5. Update local state
-      setUserData(userDataToStore);
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      throw error;
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    try {
-      await auth.signOut();
-    } catch (error: any) {
-      console.error("Logout error:", error);
-      throw error;
-    }
-  };
-
-  const resetPassword = async (email: string): Promise<void> => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-      console.error("Reset password error:", error);
-      throw error;
-    }
-  };
-
-  const getUserRole = (): ROLES => {
-    return userData?.role || ROLES.USER;
-  };
-
-  const hasRole = (role: ROLES): boolean => {
-    return userData?.role === role;
-  };
-
-  const hasMinimumRole = (role: ROLES): boolean => {
-    const ROLE_LEVEL: Record<ROLES, number> = {
-      [ROLES.USER]: 1,
-      [ROLES.INSTRUCTOR]: 2,
-      [ROLES.ADMIN]: 3,
+    const userDoc: UserData = {
+      uid: user.uid,
+      email: user.email || "",
+      displayName: additionalData.displayName || "",
+      role: additionalData.role || ROLES.USER,
+      emailVerified: user.emailVerified,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      photoUrl: null,
     };
 
-    const userRole = getUserRole();
-    return ROLE_LEVEL[userRole] >= ROLE_LEVEL[role];
+    await setDoc(doc(db, "users", user.uid), userDoc);
+    setUserData(userDoc);
   };
 
-  const isAuthenticated = !!currentUser;
+  const logout = async () => {
+    await auth.signOut();
+  };
+
+  const resetPassword = (email: string) =>
+    sendPasswordResetEmail(auth, email);
+
+  const getUserRole = () => userData?.role || ROLES.USER;
+  const hasRole = (role: ROLES) => userData?.role === role;
+
+  const hasMinimumRole = (role: ROLES) => {
+    const LEVEL = { USER: 1, INSTRUCTOR: 2, ADMIN: 3 };
+    return LEVEL[getUserRole()] >= LEVEL[role];
+  };
+
+  /** ✅ CRITICAL: update avatar everywhere */
+  const updateUserPhoto = async (photoUrl: string) => {
+    if (!currentUser) return;
+
+    await updateDoc(doc(db, "users", currentUser.uid), {
+      photoUrl,
+      updatedAt: new Date().toISOString(),
+    });
+
+    setUserData(prev =>
+      prev ? { ...prev, photoUrl } : prev
+    );
+  };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       setUserLoggedIn(!!user);
 
       if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-
-          if (userDoc.exists()) {
-            setUserData(userDoc.data() as UserData);
-          } else {
-            // Create basic user data if document doesn't exist
-            const basicUserData: UserData = {
-              uid: user.uid,
-              email: user.email || "",
-              displayName: user.displayName || "",
-              role: ROLES.USER,
-              emailVerified: user.emailVerified,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            };
-            setUserData(basicUserData);
-            
-            // Optionally create the document
-            await setDoc(doc(db, "users", user.uid), basicUserData);
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUserData(null);
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          setUserData(snap.data() as UserData);
         }
       } else {
         setUserData(null);
       }
-
       setLoading(false);
     });
 
-    return unsubscribe;
+    return unsub;
   }, []);
 
   const value: AuthContextType = {
@@ -159,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userData,
     loading,
     userLoggedIn,
-    isAuthenticated,
+    isAuthenticated: !!currentUser,
     login,
     register,
     logout,
@@ -167,15 +115,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     getUserRole,
     hasRole,
     hasMinimumRole,
-    // Optional: Add refresh user data function
-    refreshUserData: async () => {
-      if (currentUser) {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        if (userDoc.exists()) {
-          setUserData(userDoc.data() as UserData);
-        }
-      }
-    }
+    updateUserPhoto,
   };
 
   return (
@@ -185,15 +125,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 };
 
-// Interfaces
+/* ================== TYPES ================== */
+
 interface AuthContextType {
   currentUser: User | null;
   userData: UserData | null;
@@ -207,7 +146,7 @@ interface AuthContextType {
   getUserRole: () => ROLES;
   hasRole: (role: ROLES) => boolean;
   hasMinimumRole: (role: ROLES) => boolean;
-  refreshUserData?: () => Promise<void>;
+  updateUserPhoto: (photoUrl: string) => Promise<void>;
 }
 
 interface UserData {
@@ -218,5 +157,5 @@ interface UserData {
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
-  [key: string]: any;
+  photoUrl: string | null;
 }

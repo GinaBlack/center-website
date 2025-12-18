@@ -43,12 +43,13 @@ import UploadProject from './pages/Userpages/projects/UploadProject';
 import MyCourses from './pages/Userpages/Learning/MyCourses';
 import BookHall from './pages/Userpages/Services/BookHall';
 import MyBookings from './pages/Userpages/Services/MyBookings';
-import UserNotifications from './pages/Userpages/Profile/Notifications';
+import UserNotifications from './pages/Notifications';
 import Profile from './pages/Userpages/Profile/Profile'
 import ChangePassword from './pages/Userpages/Profile/ChangePassword';
 import EditProfile from './pages/Userpages/Profile/EditProfile';
 import Settings from './pages/Userpages/Profile/SettingsPage'
 import Help from './pages/Userpages/Profile/Help'
+//import Avatar from './pages/Userpages/Profile/AvatarSelec'
 
 // Instructor Pages
 import MyInstructorCourses from './pages/Lecturerpages/MyCourse';

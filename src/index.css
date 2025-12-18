@@ -787,6 +787,9 @@
   .h-80 {
     height: calc(var(--spacing) * 80);
   }
+ .h-180 {
+    height: calc(var(--spacing) * 180);
+  }
 
   .h-temp {
     height: calc(var(--spacing) * 65);
@@ -1620,6 +1623,9 @@
 
   .pt-16 {
     padding-top: calc(var(--spacing) * 16);
+  }
+ .pt-12 {
+    padding-top: calc(var(--spacing) * 12);
   }
 
   .pt-32 {

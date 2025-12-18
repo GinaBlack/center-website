@@ -13,7 +13,7 @@ const UserDashboard = () => {
           Welcome back, {userData?.displayName}!
         </h1>
         <p className="text-gray-600 text-smx">
-          Here's what's happening with your 3D printing projects today.
+          Here's what's happening with your 3D printing projects, Hall booking and Courses today.
         </p>
       </div>
 
@@ -38,7 +38,7 @@ const UserDashboard = () => {
         <div className="bg-card p-6 border-2 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-2">Upcoming Bookings</h3>
           <p className="text-3xl font-bold">0</p>
-          <Link to="/dashboard/my-bookings" className="text-blue-600 hover:underline text-sm">
+          <Link to="/dashboard/bookings" className="text-blue-600 hover:underline text-sm">
             Manage bookings →
           </Link>
         </div>

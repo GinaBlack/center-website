@@ -14,12 +14,13 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase/firebase_config";
+import { ROLES } from '../../constants/roles'
 
 // Define user role enum for consistency
 enum UserRole {
-  INDIVIDUAL = "individual",
-  INSTRUCTOR = "instructor",
-  ADMIN = "admin"
+  INDIVIDUAL = ROLES.USER,
+  INSTRUCTOR = ROLES.INSTRUCTOR,
+  ADMIN = ROLES.ADMIN
 }
 
 export function RegisterPage() {

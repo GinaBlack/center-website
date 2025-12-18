@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
 import { useTranslation } from "../hooks/useTranslation";
 import UserMenu from "./UserMenu";
-import logo from "../assets/images/logo.png";
+import logo from '../assets/images/logo.png';
 import { ROLES } from "../constants/roles";
 
 export function Navigation() {
@@ -24,6 +24,7 @@ export function Navigation() {
     { path: "/", label: t("navigation.home") },
     { path: "/services", label: t("navigation.services") },
     { path: "/gallery", label: t("navigation.gallery") },
+    { path: "/workshops", label: t("navigation.workshops") },
     { path: "/about", label: t("navigation.about") },
     { path: "/contact", label: t("navigation.contact") }
   ];
@@ -173,7 +174,7 @@ export function Navigation() {
                 </button>
               ))}
 
-              {isAuthenticated && (
+              {hasRole(ROLES.USER) && (
                 <button
                   onClick={() => navigateTo("/dashboard")}
                   className={`
@@ -221,14 +222,14 @@ export function Navigation() {
                     transition-all duration-300
                     flex items-center justify-between
                     ${isActive("/admin")
-                      ? "bg-red-900 text-white shadow-lg"
-                      : "text-red-600 hover:text-red-800 hover:bg-red-50"
+                      ? "bg-blue-500 text-white shadow-lg"
+                      : "text-blue-600 hover:bg-muted hover:bg-red-50"
                     }
                   `}
                 >
                   <span>Admin</span>
                   {isActive("/admin") && (
-                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   )}
                 </button>
               )}
