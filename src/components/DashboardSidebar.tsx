@@ -84,11 +84,12 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
     { to: '/admin/projects', label: 'Projects Management', icon: <FolderKanban size={20} /> },
     { to: '/admin/gallery', label: 'Gallery Management', icon: <Image size={20} /> },
     { to: '/admin/messages', label: 'Messages Management', icon: <MessageSquare size={20} /> },
+    { to: '/dashboard/book-hall', label: 'Book Hall', icon: <Building size={20} /> },
     { to: '/admin/bookings', label: 'Booking Management', icon: <Calendar size={20} /> },
     { to: '/admin/courses', label: 'Course Management', icon: <Book size={20} /> },
    // { to: '/admin/materials', label: 'Material Mangement', icon: <Users size={20} /> },
     //{ to: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
-   // { to: '/admin/settings', label: 'System Settings', icon: <Settings size={20} /> },
+    { to: '/admin/systemsettings', label: 'System Settings', icon: <Settings size={20} /> },
    // { to: '/admin/database', label: 'Database', icon: <Database size={20} /> },
    // { to: '/admin/reports', label: 'Reports', icon: <FileText size={20} /> },
   ];

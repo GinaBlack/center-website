@@ -65,12 +65,14 @@ import MaterialManagement from './pages/Adminpages/ContentManagement/MaterialMan
 import BookingManagement from './pages/Adminpages/BookingManagement';
 import GalleryManagement from './pages/Adminpages/ContentManagement/GalleryManagement';
 import ContactMessages from './pages/Adminpages/ContactMessages';
+import SytemSettings from './pages/Adminpages/SystemSetting'
 
 
 // Error Pages
 import Unauthorized from './pages/Errors/Unauthorised';
 import NotFound from './pages/Errors/NotFound';
 import { User } from 'lucide-react';
+import SystemSetting from './pages/Adminpages/SystemSetting';
 
 // Role-Based Dashboard Component
 const RoleBasedDashboard = () => {
@@ -180,6 +182,7 @@ const App = () => {
                 <Route path="projects" element={<ProjectManagement />} />
                 <Route path="gallery" element={<GalleryManagement/>} />
                 <Route path="messages" element={<ContactMessages />} />
+                <Route path="systemsettings" element={<SystemSetting />} />
               </Route>
               
               {/* ================= 404 ================= */}

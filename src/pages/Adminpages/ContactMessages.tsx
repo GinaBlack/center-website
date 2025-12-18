@@ -39,7 +39,8 @@ import {
   Tag,
   AlertCircle,
   Users,
-  Shield
+  Shield,
+  FileWarningIcon
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -132,37 +133,7 @@ const MESSAGE_TYPES = [
   }
 ];
 
-// Priority configurations
-const PRIORITY_CONFIG = {
-  low: {
-    label: 'Low',
-    icon: Clock,
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-100',
-    borderColor: 'border-gray-200'
-  },
-  normal: {
-    label: 'Normal',
-    icon: Info,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-    borderColor: 'border-blue-200'
-  },
-  high: {
-    label: 'High',
-    icon: AlertTriangle,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
-    borderColor: 'border-orange-200'
-  },
-  urgent: {
-    label: 'Urgent',
-    icon: AlertCircle,
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
-    borderColor: 'border-red-200'
-  }
-};
+
 
 // Reply form component
 interface ReplyFormProps {
@@ -365,8 +336,8 @@ function MessageDetail({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-background rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="fixed pt-30 inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center p-12">
+        <div className="bg-background rounded-2xl shadow-2xl w-full max-w-4xl h-180  overflow-y-auto">
           <div className="p-6">
             {/* Header */}
             <div className="flex items-start justify-between mb-6">
@@ -442,7 +413,7 @@ function MessageDetail({
                   </div>
                 </div>
 
-                {/* Message Type & Priority */}
+                {/* Message Type  */}
                 <div className="bg-card border rounded-xl p-6">
                   <h3 className="font-medium mb-4">Message Details</h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -588,13 +559,16 @@ function MessageDetail({
                 </div>
 
                 {/* Danger Zone */}
-                <div className="bg-card border border-red-200 rounded-xl p-6">
-                  <h3 className="font-medium text-red-600 mb-4">Danger Zone</h3>
+                <div className="bg-card border border-red-500 rounded-xl p-6">
+                  <div className="flex ">
+                  <FileWarningIcon className="w-8 h-8 text-red-500"/>
+                  <h3 className="font-high text-red-500 mb-4">Danger Zone</h3>
+                  </div>
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="w-full px-4 py-3 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-4 py-3 border border-red-500 text-red-500 rounded-lg font-medium hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-6 h-6 text-red-500" />
                     Delete Message
                   </button>
                 </div>
@@ -606,15 +580,15 @@ function MessageDetail({
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-60 flex items-center justify-center p-4">
-          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md">
+          <div className="bg-background rounded-2xl border-2 shadow-2xl w-full max-w-md">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-5 h-5" />
+                  <AlertCircle className="w-12 h-12 text-red-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">Delete Message</h3>
-                  <p className="text-sm text-muted-foreground">This action cannot be undone</p>
+                  <h3 className="text-lg text-red-500 font-semibold">Delete Message</h3>
+                  <p className="text-sm text-orange-500">This action cannot be undone</p>
                 </div>
               </div>
               
@@ -625,13 +599,13 @@ function MessageDetail({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 border border-input rounded-lg font-medium hover:bg-muted transition-colors"
+                  className="px-4 py-2 border  rounded-lg font-medium hover:bg-muted transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Permanently
@@ -953,12 +927,12 @@ export default function MessagesManagementPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-black text-white mb-8 py-12">
+      <div className="  py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold mb-4">Messages Management</h1>
-              <p className="text-white/80">
+              <h1 className="text-lg font-bold mb-4">Messages Management</h1>
+              <p className="text-md">
                 Manage contact form messages, reply to inquiries, and track conversations
               </p>
             </div>
@@ -976,14 +950,14 @@ export default function MessagesManagementPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
           {[
-            { label: "Total", value: stats.total, color: "bg-gray-500/10", icon: Mail },
-            { label: "New", value: stats.new, color: "bg-red-500/10", icon: MailOpen },
-            { label: "Unread", value: stats.unread, color: "bg-blue-500/10", icon: Eye },
-            { label: "Replied", value: stats.replied, color: "bg-green-500/10", icon: Reply },
-            { label: "Closed", value: stats.closed, color: "bg-gray-500/10", icon: CheckCircle },
-            { label: "Important", value: stats.important, color: "bg-yellow-500/10", icon: Star },
+            { label: "Total", value: stats.total, color: "bg-", icon: Mail },
+            { label: "New", value: stats.new, color: "bg-", icon: MailOpen },
+            { label: "Unread", value: stats.unread, color: "bg-", icon: Eye },
+            { label: "Replied", value: stats.replied, color: "bg-", icon: Reply },
+            { label: "Closed", value: stats.closed, color: "bg-", icon: CheckCircle },
+            { label: "Important", value: stats.important, color: "bg-0", icon: Star },
           ].map((stat, index) => (
             <div key={index} className="bg-card border rounded-xl p-4">
               <div className="flex items-center justify-between">
@@ -1003,15 +977,15 @@ export default function MessagesManagementPage() {
         <div className="mb-8 space-y-4">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="flex-1 ">
+              <div className="relative ">
+                <Search className="absolute   top-1/2 transform -translate-y-1/2 w-8 h-6 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search messages by name, email, subject, or content..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-input rounded-lg bg-background"
+                  className="w-full pl-8 pr-4 py-3 border  rounded-lg bg-background"
                 />
               </div>
             </div>
@@ -1034,7 +1008,7 @@ export default function MessagesManagementPage() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="px-4 py-3 border border-input rounded-lg bg-background"
+                className="px-4 py-3 border border-2 rounded-lg bg-background"
                 title="typefilter"
               >
                 <option value="all">All Types</option>
@@ -1045,18 +1019,6 @@ export default function MessagesManagementPage() {
                 ))}
               </select>
 
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-4 py-3 border border-input rounded-lg bg-background"
-                title="priorityfilter"
-              >
-                <option value="all">All Priorities</option>
-                <option value="urgent">Urgent</option>
-                <option value="high">High</option>
-                <option value="normal">Normal</option>
-                <option value="low">Low</option>
-              </select>
             </div>
           </div>
 
@@ -1070,16 +1032,8 @@ export default function MessagesManagementPage() {
                 title="sortby"
               >
                 <option value="date">Sort by Date</option>
-                <option value="priority">Sort by Priority</option>
                 <option value="type">Sort by Type</option>
               </select>
-
-              <button
-                onClick={() => setSortOrder(order => order === "asc" ? "desc" : "asc")}
-                className="px-4 py-3 border border-input rounded-lg hover:bg-muted transition-colors"
-              >
-                {sortOrder === "asc" ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-              </button>
             </div>
 
             {/* Bulk Actions */}
@@ -1142,7 +1096,6 @@ export default function MessagesManagementPage() {
                   </th>
                   <th className="py-4 px-6 text-left font-medium">Sender</th>
                   <th className="py-4 px-6 text-left font-medium">Subject & Type</th>
-                  <th className="py-4 px-6 text-left font-medium">Priority</th>
                   <th className="py-4 px-6 text-left font-medium">Status</th>
                   <th className="py-4 px-6 text-left font-medium">Date</th>
                   <th className="py-4 px-6 text-left font-medium">Actions</th>
@@ -1303,30 +1256,10 @@ export default function MessagesManagementPage() {
         </div>
 
         {/* Instructions */}
-        <div className="mt-8 p-6 bg-muted/30 rounded-xl">
+        <div className="pb-16 ">
+        <div className="mt-8 p-6 bg-muted rounded-xl ">
           <h3 className="font-medium mb-4">Quick Guide</h3>
           <div className="grid md:grid-cols-3 gap-6">
-            <div>
-              <h4 className="text-sm font-medium mb-2">Priorities</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li className="flex items-center gap-2">
-                  <AlertCircle className="w-3 h-3 text-red-600" />
-                  <span>Urgent: Critical issues (1-2h response)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <AlertTriangle className="w-3 h-3 text-orange-600" />
-                  <span>High: Important inquiries (4-12h)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Info className="w-3 h-3 text-blue-600" />
-                  <span>Normal: Regular inquiries (24h)</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Clock className="w-3 h-3 text-gray-600" />
-                  <span>Low: Feedback/General (48h+)</span>
-                </li>
-              </ul>
-            </div>
             <div>
               <h4 className="text-sm font-medium mb-2">Status Meaning</h4>
               <ul className="text-sm text-muted-foreground space-y-1">
@@ -1347,6 +1280,7 @@ export default function MessagesManagementPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Message Detail View */}

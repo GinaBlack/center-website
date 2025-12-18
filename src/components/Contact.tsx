@@ -458,10 +458,10 @@ export function Contact() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle>Send Us a Message</CardTitle>
+                    <CardTitle className='text-medium text-lg'>Send Us a Message</CardTitle>
                     <CardDescription>
                       {currentUser ? (
-                        <span className="flex items-center gap-2">
+                        <span className="flex items-center pt-2 gap-2">
                           <User className="w-4 h-4" />
                           Logged in as {currentUser.email}
                         </span>
@@ -473,7 +473,7 @@ export function Contact() {
                   {currentUser && !isEditingProfile && (
                     <button
                       onClick={handleEditProfile}
-                      className="flex items-center gap-2 text-sm text-primary hover:text-primary/80"
+                      className="flex items-center  gap-2 text-sm text-primary hover:text-primary/80"
                     >
                       <Edit2 className="w-4 h-4" />
                       Edit Profile
@@ -495,7 +495,7 @@ export function Contact() {
                           <button
                             type="button"
                             onClick={handleSaveProfile}
-                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-1"
+                            className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-1"
                           >
                             <Save className="w-3 h-3" />
                             Save
@@ -528,12 +528,12 @@ export function Contact() {
                           value={formData.name}
                           onChange={handleChange}
                           placeholder="John Doe"
-                          className={errors.name ? "border-red-500 pr-10" : "pr-10"}
+                          className={errors.name ? "border-red-500 pr-10" : " p-6"}
                           disabled={isSubmitting || isLoadingProfile}
                         />
                         {currentUser && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <User className="w-4 h-4 text-muted-foreground" />
+                            <User className="w-8 h-4 text-muted-foreground " />
                           </div>
                         )}
                       </div>
@@ -562,12 +562,12 @@ export function Contact() {
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="john@example.com"
-                          className={errors.email ? "border-red-500 pr-10" : "pr-10"}
+                          className={errors.email ? "border-red-500 pr-10" : "p-6"}
                           disabled={isSubmitting || isLoadingProfile || (currentUser && !isEditingProfile)}
                         />
                         {currentUser && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Mail className="w-4 h-4 text-muted-foreground" />
+                            <Mail className="w-8 h-4 text-muted-foreground pr-2" />
                           </div>
                         )}
                       </div>
@@ -599,12 +599,12 @@ export function Contact() {
                           value={formData.phone}
                           onChange={handleChange}
                           placeholder="+237 6XX XX XX XX"
-                          className={errors.phone ? "border-red-500 pr-10" : "pr-10"}
+                          className={errors.phone ? "border-red-500 pr-10" : "p-6"}
                           disabled={isSubmitting || isLoadingProfile}
                         />
                         {currentUser && (
                           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <Phone className="w-8 h-4 text-muted-foreground pr-2" />
                           </div>
                         )}
                       </div>
@@ -632,7 +632,7 @@ export function Contact() {
                           name="messageType"
                           value={formData.messageType}
                           onChange={handleChange}
-                          className="w-full px-3 py-2 border border-input rounded-lg bg-background appearance-none"
+                          className="w-full px-3 py-2 border-2 rounded-lg bg-background appearance-none"
                           disabled={isSubmitting}
                         >
                           {MESSAGE_TYPES.map((type) => (
@@ -641,9 +641,7 @@ export function Contact() {
                             </option>
                           ))}
                         </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        </div>
+
                       </div>
                       {selectedType && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -653,31 +651,6 @@ export function Contact() {
                       )}
                     </div>
                   </div>
-
-                  {/* Response Time Indicator */}
-                  {selectedType && (
-                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-blue-600" />
-                          <div>
-                            <span className="font-medium text-blue-600">
-                              Expected Response Time
-                            </span>
-                            <p className="text-sm text-muted-foreground">
-                              Based on your selected message type
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-blue-600">
-                            {selectedType.responseTime}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="space-y-2">
                     <Label htmlFor="subject">
                       Subject *

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, Users, MapPin, X, Check, AlertCircle, Trash2, Download, Printer, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, Users, MapPin, X, Check, AlertCircle, Trash2, Download, ChevronRight } from 'lucide-react';
+import { db, auth, collection, getDocs, query, where, updateDoc, doc, Timestamp } from '../../../firebase/firebase_config';
 
 // Type Definitions
 type BookingStatus = 'accepted' | 'pending' | 'cancelled' | 'rejected';
@@ -13,8 +14,8 @@ interface Hall {
 }
 
 interface Booking {
-  id: number;
-  hallId: number;
+  id: string;
+  hallId: string;
   bookingDate: string;
   startTime: string;
   endTime: string;
@@ -22,14 +23,21 @@ interface Booking {
   attendees: number;
   purpose: string;
   status: BookingStatus;
-  hall: Hall;
-  createdAt: string;
+  hallName: string;
+  hallImage: string;
+  hallLocation: string;
+  hallCapacity: number;
+  hallPricePerHour: number;
+  createdAt: Timestamp;
   bookingId: string;
+  userId: string;
+  userEmail: string;
   specialRequirements?: string;
-  cancelledAt?: string;
+  cancelledAt?: Timestamp;
   cancellationReason?: string;
-  rejectedAt?: string;
+  rejectedAt?: Timestamp;
   rejectionReason?: string;
+  totalCost: number;
 }
 
 interface StatusConfig {
@@ -40,122 +48,90 @@ interface StatusConfig {
   icon: React.ReactNode;
 }
 
-const MyBookingsPage: React.FC = () => {
-  // Sample bookings data
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 1,
-      hallId: 1,
-      bookingDate: '2024-01-15',
-      startTime: '09:00',
-      endTime: '12:00',
-      duration: 3,
-      attendees: 25,
-      purpose: '3D Printing Workshop for Beginners',
-      status: 'accepted',
-      hall: {
-        name: '3D Printing Innovation Hall',
-        image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        capacity: 50,
-        location: 'Main Building, Floor 3',
-        pricePerHour: 120
-      },
-      createdAt: '2024-01-10T10:30:00Z',
-      bookingId: 'BK-001-2024',
-      specialRequirements: 'Need 5 additional chairs and projector setup'
-    },
-    {
-      id: 2,
-      hallId: 2,
-      bookingDate: '2024-01-20',
-      startTime: '14:00',
-      endTime: '17:30',
-      duration: 3.5,
-      attendees: 15,
-      purpose: 'Prototype Development Session',
-      status: 'pending',
-      hall: {
-        name: 'Maker Space Workshop',
-        image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        capacity: 30,
-        location: 'Tech Wing, Floor 1',
-        pricePerHour: 85
-      },
-      createdAt: '2024-01-12T14:45:00Z',
-      bookingId: 'BK-002-2024',
-      specialRequirements: 'Require 3D printer calibration before session'
-    },
-    {
-      id: 3,
-      hallId: 3,
-      bookingDate: '2024-01-25',
-      startTime: '10:00',
-      endTime: '16:00',
-      duration: 6,
-      attendees: 18,
-      purpose: 'Team Design Review Meeting',
-      status: 'cancelled',
-      hall: {
-        name: 'Design Studio Conference Room',
-        image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        capacity: 20,
-        location: 'Design Center, Floor 2',
-        pricePerHour: 65
-      },
-      createdAt: '2024-01-15T09:20:00Z',
-      cancelledAt: '2024-01-18T11:30:00Z',
-      bookingId: 'BK-003-2024',
-      cancellationReason: 'Schedule conflict with client meeting'
-    },
-    {
-      id: 4,
-      hallId: 4,
-      bookingDate: '2024-02-01',
-      startTime: '13:00',
-      endTime: '18:00',
-      duration: 5,
-      attendees: 10,
-      purpose: 'Advanced Materials Testing',
-      status: 'rejected',
-      hall: {
-        name: 'Advanced Materials Lab',
-        image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        capacity: 15,
-        location: 'Research Building, Floor B1',
-        pricePerHour: 150
-      },
-      createdAt: '2024-01-18T16:30:00Z',
-      rejectedAt: '2024-01-19T10:15:00Z',
-      bookingId: 'BK-004-2024',
-      rejectionReason: 'Lab undergoing maintenance on requested date'
-    },
-    {
-      id: 5,
-      hallId: 1,
-      bookingDate: '2024-02-10',
-      startTime: '08:30',
-      endTime: '15:30',
-      duration: 7,
-      attendees: 40,
-      purpose: 'Annual 3D Printing Conference',
-      status: 'accepted',
-      hall: {
-        name: '3D Printing Innovation Hall',
-        image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        capacity: 50,
-        location: 'Main Building, Floor 3',
-        pricePerHour: 120
-      },
-      createdAt: '2024-01-20T11:15:00Z',
-      bookingId: 'BK-005-2024',
-      specialRequirements: 'Full day booking with catering arrangements'
-    }
-  ]);
-
-  const [cancellingBooking, setCancellingBooking] = useState<number | null>(null);
+const MyBookings: React.FC = () => {
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [cancellingBooking, setCancellingBooking] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'upcoming' | 'past' | 'cancelled'>('all');
-  const [expandedBooking, setExpandedBooking] = useState<number | null>(null);
+  const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch user bookings from Firebase
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const user = auth.currentUser;
+        
+        if (!user) {
+          console.log('No user logged in');
+          setBookings([]);
+          return;
+        }
+
+        const bookingsQuery = query(
+          collection(db, 'bookings'),
+          where('userId', '==', user.uid)
+        );
+
+        const bookingsSnapshot = await getDocs(bookingsQuery);
+        
+        const bookingsList: Booking[] = [];
+        bookingsSnapshot.forEach((doc) => {
+          const bookingData = doc.data();
+          bookingsList.push({
+            id: doc.id,
+            ...bookingData
+          } as Booking);
+        });
+
+        // Fetch hall details for each booking
+        const bookingsWithHallDetails = await Promise.all(
+          bookingsList.map(async (booking) => {
+            try {
+              // If hall details are already stored with booking, use them
+              if (booking.hallName && booking.hallImage) {
+                return booking;
+              }
+              
+              // Otherwise, fetch hall details from halls collection
+              const hallsQuery = query(
+                collection(db, 'halls'),
+                where('id', '==', booking.hallId)
+              );
+              const hallSnapshot = await getDocs(hallsQuery);
+              
+              if (!hallSnapshot.empty) {
+                const hallData = hallSnapshot.docs[0].data();
+                return {
+                  ...booking,
+                  hallName: hallData.name || 'Unknown Hall',
+                  hallImage: hallData.images?.[0] || '',
+                  hallLocation: hallData.location || '',
+                  hallCapacity: hallData.capacity || 0,
+                  hallPricePerHour: hallData.pricePerHour || 0
+                };
+              }
+              
+              return booking;
+            } catch (error) {
+              console.error('Error fetching hall details:', error);
+              return booking;
+            }
+          })
+        );
+
+        setBookings(bookingsWithHallDetails);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        alert('Failed to load bookings. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
 
   const getStatusConfig = (status: BookingStatus): StatusConfig => {
     const configs: Record<BookingStatus, StatusConfig> = {
@@ -192,11 +168,18 @@ const MyBookingsPage: React.FC = () => {
   };
 
   const calculateTotalCost = (booking: Booking): number => {
-    return booking.hall.pricePerHour * booking.duration;
+    return booking.totalCost || booking.duration * (booking.hallPricePerHour || 0);
   };
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
+  const formatDate = (dateString: string | Timestamp): string => {
+    let date: Date;
+    
+    if (dateString instanceof Timestamp) {
+      date = dateString.toDate();
+    } else {
+      date = new Date(dateString);
+    }
+    
     return date.toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
@@ -213,28 +196,41 @@ const MyBookingsPage: React.FC = () => {
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const handleCancelBooking = (bookingId: number): void => {
+  const handleCancelBooking = async (bookingId: string) => {
     if (!cancelReason.trim()) {
       alert('Please provide a reason for cancellation');
       return;
     }
 
-    setBookings(prevBookings =>
-      prevBookings.map(booking =>
-        booking.id === bookingId
-          ? {
-              ...booking,
-              status: 'cancelled',
-              cancelledAt: new Date().toISOString(),
-              cancellationReason: cancelReason
-            }
-          : booking
-      )
-    );
+    try {
+      const bookingDocRef = doc(db, 'bookings', bookingId);
+      await updateDoc(bookingDocRef, {
+        status: 'cancelled',
+        cancelledAt: Timestamp.now(),
+        cancellationReason: cancelReason
+      });
 
-    setCancellingBooking(null);
-    setCancelReason('');
-    alert('Booking cancelled successfully');
+      // Update local state
+      setBookings(prevBookings =>
+        prevBookings.map(booking =>
+          booking.id === bookingId
+            ? {
+                ...booking,
+                status: 'cancelled',
+                cancelledAt: Timestamp.now(),
+                cancellationReason: cancelReason
+              }
+            : booking
+        )
+      );
+
+      setCancellingBooking(null);
+      setCancelReason('');
+      alert('Booking cancelled successfully');
+    } catch (error) {
+      console.error('Error cancelling booking:', error);
+      alert('Failed to cancel booking. Please try again.');
+    }
   };
 
   const filteredBookings = bookings.filter((booking: Booking): boolean => {
@@ -251,13 +247,55 @@ const MyBookingsPage: React.FC = () => {
     return [...bookingsArray].sort((a: Booking, b: Booking): number => {
       const dateA = new Date(a.bookingDate);
       const dateB = new Date(b.bookingDate);
-      return dateA.getTime() - dateB.getTime();
+      return dateB.getTime() - dateA.getTime(); // Most recent first
     });
   };
 
-  const toggleExpandBooking = (bookingId: number): void => {
+  const toggleExpandBooking = (bookingId: string): void => {
     setExpandedBooking(expandedBooking === bookingId ? null : bookingId);
   };
+
+  const handleDownloadInvoice = (booking: Booking) => {
+    // Generate invoice content
+    const invoiceContent = `
+      Booking Invoice
+      =================
+      
+      Booking ID: ${booking.bookingId}
+      Hall: ${booking.hallName}
+      Date: ${formatDate(booking.bookingDate)}
+      Time: ${formatTime(booking.startTime)} - ${formatTime(booking.endTime)}
+      Duration: ${booking.duration} hours
+      Attendees: ${booking.attendees}
+      Purpose: ${booking.purpose}
+      Rate: $${booking.hallPricePerHour}/hour
+      Total Cost: $${calculateTotalCost(booking)}
+      Status: ${booking.status}
+      Booked On: ${formatDate(booking.createdAt)}
+    `;
+    
+    // Create and download file
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${booking.bookingId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background py-20 p-4 container mx-auto px-4 py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading your bookings...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -314,7 +352,7 @@ const MyBookingsPage: React.FC = () => {
                 <p className="text-sm text-muted-foreground">Cancelled</p>
                 <p className="text-2xl font-bold">{bookings.filter(b => b.status === 'cancelled').length}</p>
               </div>
-              <div className="size-10 rounded-lg bg-gray-500/10 flex items-center justify-center">
+              <div className="size-10 rounded-lg bg-red-500/10 flex items-center justify-center">
                 <X className="w-5 h-5 text-red-500" />
               </div>
             </div>
@@ -365,13 +403,13 @@ const MyBookingsPage: React.FC = () => {
                   <div className="md:w-1/4 lg:w-1/5 p-4">
                     <div className="relative h-48 md:h-full rounded-lg overflow-hidden">
                       <img
-                        src={booking.hall.image}
-                        alt={booking.hall.name}
+                        src={booking.hallImage}
+                        alt={booking.hallName}
                         className="w-full h-full object-cover"
                       />
                       {/* Hall Name Overlay */}
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                        <h3 className="text-white font-semibold text-sm">{booking.hall.name}</h3>
+                        <h3 className="text-white font-semibold text-sm">{booking.hallName}</h3>
                       </div>
                     </div>
                   </div>
@@ -403,7 +441,7 @@ const MyBookingsPage: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span>{booking.hall.location}</span>
+                            <span>{booking.hallLocation}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-medium">Booking ID:</span>
@@ -411,7 +449,7 @@ const MyBookingsPage: React.FC = () => {
                           </div>
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-medium">Total Cost:</span>
-                            <span className="font-bold">${totalCost}</span>
+                            <span className="font-bold">${totalCost.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -437,7 +475,10 @@ const MyBookingsPage: React.FC = () => {
                         )}
                         
                         {booking.status === 'accepted' && (
-                          <button className="px-4 py-2 text-sm bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2">
+                          <button 
+                            onClick={() => handleDownloadInvoice(booking)}
+                            className="px-4 py-2 text-sm bg-blue-500/10 text-blue-600 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors flex items-center justify-center gap-2"
+                          >
                             <Download className="w-4 h-4" />
                             Download Invoice
                           </button>
@@ -459,11 +500,11 @@ const MyBookingsPage: React.FC = () => {
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Hall Capacity:</span>
-                                <span>{booking.hall.capacity} people</span>
+                                <span>{booking.hallCapacity} people</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Rate:</span>
-                                <span>${booking.hall.pricePerHour}/hour</span>
+                                <span>${booking.hallPricePerHour}/hour</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">Duration:</span>
@@ -526,7 +567,7 @@ const MyBookingsPage: React.FC = () => {
             );
           })}
 
-          {filteredBookings.length === 0 && (
+          {filteredBookings.length === 0 && !loading && (
             <div className="text-center py-12">
               <div className="size-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <Calendar className="w-8 h-8 text-muted-foreground" />
@@ -592,10 +633,8 @@ const MyBookingsPage: React.FC = () => {
           </div>
         </div>
       )}
-
-
     </div>
   );
 };
 
-export default MyBookingsPage;
+export default MyBookings;

@@ -988,7 +988,10 @@
   .grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-
+  
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
   .grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -996,9 +999,6 @@
     grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 
-  .grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 
   .grid-cols-\[0_1fr\] {
     grid-template-columns: 0 1fr;
@@ -1631,7 +1631,9 @@
   .pt-32 {
     padding-top: calc(var(--spacing) * 32);
   }
-
+ .pt-30 {
+    padding-top: calc(var(--spacing) * 30);
+  }
   .pr-2 {
     padding-right: calc(var(--spacing) * 2);
   }
@@ -1643,7 +1645,9 @@
   .pr-12 {
     padding-right: calc(var(--spacing) * 12);
   }
-
+  .pr-16 {
+    padding-right: calc(var(--spacing) * 16);
+  }
   .pr-x {
     padding-right: calc(var(--spacing) * 80);
   }
