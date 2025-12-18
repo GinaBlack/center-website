@@ -3,8 +3,6 @@ export type MessageType = 'workshop_booking' | 'space_rental' | '3d_printing' | 
                    'training' | 'maintenance' | 'partnership' | 'general_inquiry' | 
                    'feedback' | 'billing' | 'urgent_support';
 
-export type MessagePriority = 'low' | 'normal' | 'high' | 'urgent';
-
 export interface ContactMessage {
   id: string;
   message_id: string;
@@ -18,7 +16,6 @@ export interface ContactMessage {
   message_type_label: string;
   category: 'general' | 'technical' | 'billing' | 'feedback' | 'partnership';
   status: 'new' | 'read' | 'replied' | 'closed';
-  priority: MessagePriority;
   assigned_to?: string | null;
   reply_message?: string;
   replied_at?: Timestamp | null;

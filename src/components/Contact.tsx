@@ -1,4 +1,4 @@
-import React from 'react'; 
+import React, { useState, useEffect } from 'react'; 
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
@@ -26,45 +26,58 @@ import {
   Printer, 
   GraduationCap, 
   Settings, 
-  ChevronDown 
+  ChevronDown,
+  User,
+  Edit2,
+  Save,
+  X
 } from "lucide-react";
 
-import { useState } from "react";
 import { toast } from "sonner";
 import { 
   db, 
   auth, 
   collection, 
   addDoc, 
-  serverTimestamp
+  serverTimestamp,
+  doc,
+  getDoc,
+  setDoc
 } from "../firebase/firebase_config";
 import { v4 as uuidv4 } from 'uuid';
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 
-// Message type definitions with priorities
+// Message type definitions WITHOUT priorities
 type MessageType = 'workshop_booking' | 'space_rental' | '3d_printing' | 'technical_support' | 
                    'training' | 'maintenance' | 'partnership' | 'general_inquiry' | 
                    'feedback' | 'billing' | 'urgent_support';
-
-type MessagePriority = 'low' | 'normal' | 'high' | 'urgent';
 
 interface MessageTypeConfig {
   id: MessageType;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
-  defaultPriority: MessagePriority;
   responseTime: string;
   color: string;
 }
 
-// Message type configurations with priorities
+// User profile interface
+interface UserProfile {
+  name?: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  position?: string;
+  updatedAt?: Date;
+}
+
+// Message type configurations WITHOUT priorities
 const MESSAGE_TYPES: MessageTypeConfig[] = [
   {
     id: 'workshop_booking',
     label: 'Workshop/Seminar Booking',
     icon: Calendar,
     description: 'Book a 3D printing workshop or training session',
-    defaultPriority: 'high',
     responseTime: '2-4 hours',
     color: 'bg-blue-500'
   },
@@ -73,7 +86,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Space/Studio Rental',
     icon: Home,
     description: 'Rent our co-working space or creative studio',
-    defaultPriority: 'high',
     responseTime: '4-6 hours',
     color: 'bg-green-500'
   },
@@ -82,7 +94,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: '3D Printing Service',
     icon: Printer,
     description: 'Custom 3D printing project or consultation',
-    defaultPriority: 'normal',
     responseTime: '12-24 hours',
     color: 'bg-purple-500'
   },
@@ -91,7 +102,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Technical Support',
     icon: Wrench,
     description: 'Equipment or software technical issues',
-    defaultPriority: 'high',
     responseTime: '4-8 hours',
     color: 'bg-orange-500'
   },
@@ -100,7 +110,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Training Request',
     icon: GraduationCap,
     description: 'Individual or group training sessions',
-    defaultPriority: 'normal',
     responseTime: '24-48 hours',
     color: 'bg-indigo-500'
   },
@@ -109,7 +118,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Equipment Maintenance',
     icon: Settings,
     description: 'Repair or maintenance service requests',
-    defaultPriority: 'high',
     responseTime: '6-12 hours',
     color: 'bg-red-500'
   },
@@ -118,7 +126,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Partnership/Corporate',
     icon: Handshake,
     description: 'Business partnership or corporate inquiries',
-    defaultPriority: 'normal',
     responseTime: '24-48 hours',
     color: 'bg-teal-500'
   },
@@ -127,7 +134,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'General Inquiry',
     icon: HelpCircle,
     description: 'General questions or information requests',
-    defaultPriority: 'low',
     responseTime: '24-48 hours',
     color: 'bg-gray-500'
   },
@@ -136,7 +142,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Feedback/Suggestions',
     icon: Heart,
     description: 'Share your feedback or suggestions',
-    defaultPriority: 'low',
     responseTime: '48-72 hours',
     color: 'bg-pink-500'
   },
@@ -145,7 +150,6 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Billing/Payment',
     icon: DollarSign,
     description: 'Invoice, payment, or billing questions',
-    defaultPriority: 'high',
     responseTime: '6-12 hours',
     color: 'bg-yellow-500'
   },
@@ -154,74 +158,38 @@ const MESSAGE_TYPES: MessageTypeConfig[] = [
     label: 'Urgent Support',
     icon: AlertTriangle,
     description: 'Critical issues requiring immediate attention',
-    defaultPriority: 'urgent',
     responseTime: '1-2 hours',
     color: 'bg-red-600'
   }
 ];
 
-// Priority configurations
-const PRIORITY_CONFIG: Record<MessagePriority, {
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  bgColor: string;
-  description: string;
-}> = {
-  low: {
-    label: 'Low Priority',
-    icon: Clock,
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-100',
-    description: 'Standard inquiry, no immediate action required'
-  },
-  normal: {
-    label: 'Normal Priority',
-    icon: Info,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
-    description: 'Regular inquiry, respond within 24 hours'
-  },
-  high: {
-    label: 'High Priority',
-    icon: AlertTriangle,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
-    description: 'Important inquiry, respond within 12 hours'
-  },
-  urgent: {
-    label: 'Urgent Priority',
-    icon: AlertCircle,
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
-    description: 'Critical issue, immediate attention required'
+// Load user profile from Firestore
+const loadUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const userDocRef = doc(db, 'user_profiles', userId);
+    const userDoc = await getDoc(userDocRef);
+    
+    if (userDoc.exists()) {
+      return userDoc.data() as UserProfile;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error loading user profile:', error);
+    return null;
   }
 };
 
-// Helper function to get priority based on message type and subject keywords
-const getPriority = (
-  messageType: MessageType, 
-  subject: string, 
-  message: string
-): MessagePriority => {
-  const selectedType = MESSAGE_TYPES.find(t => t.id === messageType);
-  let priority = selectedType?.defaultPriority || 'normal';
-  
-  // Check for urgent keywords in subject or message
-  const urgentKeywords = ['emergency', 'urgent', 'asap', 'critical', 'broken', 'not working', 'down'];
-  const highKeywords = ['help', 'issue', 'problem', 'error', 'failed', 'cannot', 'unable'];
-  
-  const text = (subject + ' ' + message).toLowerCase();
-  
-  if (urgentKeywords.some(keyword => text.includes(keyword))) {
-    return 'urgent';
+// Save user profile to Firestore
+const saveUserProfile = async (userId: string, profile: UserProfile): Promise<void> => {
+  try {
+    const userDocRef = doc(db, 'user_profiles', userId);
+    await setDoc(userDocRef, {
+      ...profile,
+      updatedAt: new Date()
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error saving user profile:', error);
   }
-  
-  if (highKeywords.some(keyword => text.includes(keyword)) && priority !== 'urgent') {
-    return 'high';
-  }
-  
-  return priority;
 };
 
 export function Contact() {
@@ -236,13 +204,92 @@ export function Contact() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [selectedPriority, setSelectedPriority] = useState<MessagePriority>('normal');
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
 
-  // Calculate priority whenever form data changes
-  React.useEffect(() => {
-    const priority = getPriority(formData.messageType, formData.subject, formData.message);
-    setSelectedPriority(priority);
-  }, [formData.messageType, formData.subject, formData.message]);
+  // Listen to auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      
+      if (user) {
+        setIsLoadingProfile(true);
+        // Load user profile
+        const profile = await loadUserProfile(user.uid);
+        setUserProfile(profile);
+        
+        // Auto-fill form with user data
+        const displayName = user.displayName || profile?.name || '';
+        const userEmail = user.email || profile?.email || '';
+        const userPhone = profile?.phone || '';
+        
+        setFormData(prev => ({
+          ...prev,
+          name: displayName,
+          email: userEmail,
+          phone: userPhone
+        }));
+        
+        setIsLoadingProfile(false);
+      } else {
+        // Reset form for non-logged in users
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "",
+          message: "",
+          messageType: "general_inquiry",
+        });
+        setUserProfile(null);
+        setIsLoadingProfile(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Handle profile editing
+  const handleEditProfile = () => {
+    setIsEditingProfile(true);
+    setOriginalProfile(userProfile);
+  };
+
+  const handleSaveProfile = async () => {
+    if (!currentUser) return;
+
+    try {
+      const updatedProfile: UserProfile = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        updatedAt: new Date()
+      };
+
+      await saveUserProfile(currentUser.uid, updatedProfile);
+      setUserProfile(updatedProfile);
+      setIsEditingProfile(false);
+      toast.success("Profile saved successfully!");
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error("Failed to save profile");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingProfile(false);
+    if (originalProfile) {
+      setFormData(prev => ({
+        ...prev,
+        name: originalProfile.name || '',
+        email: originalProfile.email || '',
+        phone: originalProfile.phone || ''
+      }));
+    }
+  };
 
   // Validate form
   const validateForm = () => {
@@ -280,8 +327,6 @@ export function Contact() {
     setIsSubmitting(true);
 
     try {
-      // Get current user if logged in
-      const currentUser = auth.currentUser;
       const userId = currentUser?.uid || null;
 
       // Generate unique ID for the message
@@ -290,7 +335,7 @@ export function Contact() {
       // Get selected message type config
       const selectedType = MESSAGE_TYPES.find(t => t.id === formData.messageType);
       
-      // Create message object for Firestore
+      // Create message object for Firestore (NO PRIORITY FIELD)
       const messageData = {
         message_id: messageId,
         user_id: userId,
@@ -303,7 +348,6 @@ export function Contact() {
         message_type_label: selectedType?.label || 'General Inquiry',
         category: mapMessageTypeToCategory(formData.messageType),
         status: 'new',
-        priority: selectedPriority,
         assigned_to: null,
         reply_message: null,
         replied_at: null,
@@ -314,26 +358,34 @@ export function Contact() {
       const messagesRef = collection(db, 'contact_messages');
       await addDoc(messagesRef, messageData);
 
-      // Reset form
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
+      // Save user profile if logged in
+      if (currentUser && !userProfile) {
+        const userProfileData: UserProfile = {
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          updatedAt: new Date()
+        };
+        await saveUserProfile(currentUser.uid, userProfileData);
+        setUserProfile(userProfileData);
+      }
+
+      // Reset form (keep user details for logged-in users)
+      setFormData(prev => ({
+        ...prev,
         subject: "",
         message: "",
         messageType: "general_inquiry",
-      });
+      }));
 
       setErrors({});
 
-      // Show success message with priority information
-      const PriorityIcon = PRIORITY_CONFIG[selectedPriority].icon;
-      
+      // Show success message WITHOUT priority
       toast.success("Message sent successfully!", {
         description: (
           <div className="flex items-center gap-2 mt-1">
-            <PriorityIcon className="w-4 h-4" />
-            <span>{PRIORITY_CONFIG[selectedPriority].label} • Reference: {messageId.substring(0, 8).toUpperCase()}</span>
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            <span>Reference: {messageId.substring(0, 8).toUpperCase()}</span>
           </div>
         ),
         duration: 5000,
@@ -387,8 +439,6 @@ export function Contact() {
 
   // Get selected message type details
   const selectedType = MESSAGE_TYPES.find(t => t.id === formData.messageType);
-  const PriorityConfig = PRIORITY_CONFIG[selectedPriority];
-  const PriorityIcon = PriorityConfig.icon;
 
   return (
     <section id="contact" className="py-2 lg:py-12">
@@ -406,31 +456,97 @@ export function Contact() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Send Us a Message</CardTitle>
-                <CardDescription>
-                  Select your inquiry type and we'll prioritize your message accordingly
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Send Us a Message</CardTitle>
+                    <CardDescription>
+                      {currentUser ? (
+                        <span className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          Logged in as {currentUser.email}
+                        </span>
+                      ) : (
+                        "Select your inquiry type for better assistance"
+                      )}
+                    </CardDescription>
+                  </div>
+                  {currentUser && !isEditingProfile && (
+                    <button
+                      onClick={handleEditProfile}
+                      className="flex items-center gap-2 text-sm text-primary hover:text-primary/80"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit Profile
+                    </button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* User Profile Section */}
+                  {currentUser && isEditingProfile && (
+                    <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200 mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-medium text-blue-800 flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          Edit Your Profile
+                        </h3>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSaveProfile}
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 flex items-center gap-1"
+                          >
+                            <Save className="w-3 h-3" />
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="px-3 py-1 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-100 flex items-center gap-1"
+                          >
+                            <X className="w-3 h-3" />
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-blue-600 mb-3">
+                        Your profile details will be auto-filled for future messages
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">
                         Name *
                       </Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="John Doe"
-                        className={errors.name ? "border-red-500" : ""}
-                        disabled={isSubmitting}
-                      />
+                      <div className="relative">
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          placeholder="John Doe"
+                          className={errors.name ? "border-red-500 pr-10" : "pr-10"}
+                          disabled={isSubmitting || isLoadingProfile}
+                        />
+                        {currentUser && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <User className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
                       {errors.name && (
                         <p className="text-sm text-red-500 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           {errors.name}
+                        </p>
+                      )}
+                      {currentUser && formData.name && !isEditingProfile && (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Auto-filled from your profile
                         </p>
                       )}
                     </div>
@@ -438,20 +554,33 @@ export function Contact() {
                       <Label htmlFor="email">
                         Email *
                       </Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="john@example.com"
-                        className={errors.email ? "border-red-500" : ""}
-                        disabled={isSubmitting}
-                      />
+                      <div className="relative">
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          placeholder="john@example.com"
+                          className={errors.email ? "border-red-500 pr-10" : "pr-10"}
+                          disabled={isSubmitting || isLoadingProfile || (currentUser && !isEditingProfile)}
+                        />
+                        {currentUser && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Mail className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
                       {errors.email && (
                         <p className="text-sm text-red-500 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           {errors.email}
+                        </p>
+                      )}
+                      {currentUser && formData.email && !isEditingProfile && (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          Your account email
                         </p>
                       )}
                     </div>
@@ -462,20 +591,33 @@ export function Contact() {
                       <Label htmlFor="phone">
                         Phone Number *
                       </Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleChange}
-                        placeholder="+237 6XX XX XX XX"
-                        className={errors.phone ? "border-red-500" : ""}
-                        disabled={isSubmitting}
-                      />
+                      <div className="relative">
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="+237 6XX XX XX XX"
+                          className={errors.phone ? "border-red-500 pr-10" : "pr-10"}
+                          disabled={isSubmitting || isLoadingProfile}
+                        />
+                        {currentUser && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <Phone className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
                       {errors.phone && (
                         <p className="text-sm text-red-500 flex items-center gap-1">
                           <AlertCircle className="w-3 h-3" />
                           {errors.phone}
+                        </p>
+                      )}
+                      {currentUser && formData.phone && !isEditingProfile && (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" />
+                          From your saved profile
                         </p>
                       )}
                     </div>
@@ -488,7 +630,6 @@ export function Contact() {
                         <select
                           id="messageType"
                           name="messageType"
-                          title='messageType'
                           value={formData.messageType}
                           onChange={handleChange}
                           className="w-full px-3 py-2 border border-input rounded-lg bg-background appearance-none"
@@ -513,28 +654,29 @@ export function Contact() {
                     </div>
                   </div>
 
-                  {/* Priority Indicator */}
-                  <div className={`p-3 rounded-lg ${PriorityConfig.bgColor} border border-current/20`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <PriorityIcon className={`w-5 h-5 ${PriorityConfig.color}`} />
-                        <div>
-                          <span className={`font-medium ${PriorityConfig.color}`}>
-                            {PriorityConfig.label}
-                          </span>
-                          <p className="text-sm text-muted-foreground">
-                            {PriorityConfig.description}
-                          </p>
+                  {/* Response Time Indicator */}
+                  {selectedType && (
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <span className="font-medium text-blue-600">
+                              Expected Response Time
+                            </span>
+                            <p className="text-sm text-muted-foreground">
+                              Based on your selected message type
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-blue-600">
+                            {selectedType.responseTime}
+                          </div>
                         </div>
                       </div>
-                      {selectedType && (
-                        <div className="text-sm text-right">
-                          <div className="font-medium">Expected Response</div>
-                          <div className="text-muted-foreground">{selectedType.responseTime}</div>
-                        </div>
-                      )}
                     </div>
-                  </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="subject">
@@ -603,7 +745,7 @@ export function Contact() {
                       </p>
                     )}
                     
-                    {/* Character counter and priority hints */}
+                    {/* Character counter */}
                     <div className="flex justify-between items-center">
                       <div className="text-xs text-muted-foreground">
                         {formData.message.length < 20 ? (
@@ -617,42 +759,57 @@ export function Contact() {
                       <div className="flex items-center gap-2">
                         <span className={`text-xs ${
                           formData.message.length < 20 ? 'text-red-500' : 
-                          formData.message.length > 500 ? 'text-orange-500' : 'text-green-500'
+                          formData.message.length > 500 ? 'text-blue-500' : 'text-green-500'
                         }`}>
                           {formData.message.length}/1000
                         </span>
-                        {formData.message.length > 500 && selectedPriority !== 'urgent' && (
-                          <span className="text-xs text-orange-500 flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" />
-                            Detailed message detected
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    variant="black" 
-                    size="lg" 
-                    className="w-full"
-                    disabled={isSubmitting || formData.message.length < 20}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Sending Message...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        Send Message
-                        <span className="ml-2 text-xs opacity-80">
-                          ({selectedPriority.toUpperCase()} PRIORITY)
-                        </span>
-                      </>
+                  <div className="space-y-4">
+                    <Button 
+                      type="submit" 
+                      variant="black" 
+                      size="lg" 
+                      className="w-full"
+                      disabled={isSubmitting || formData.message.length < 20}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Sending Message...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Send Message
+                        </>
+                      )}
+                    </Button>
+                    
+                    {currentUser && (
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">
+                          Your profile information is saved for future messages.
+                          {userProfile?.updatedAt && (
+                            <span className="block mt-1">
+                              Last updated: {new Date(userProfile.updatedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     )}
-                  </Button>
+                    
+                    {!currentUser && (
+                      <div className="text-center p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                        <p className="text-sm text-yellow-800">
+                          <AlertTriangle className="w-4 h-4 inline mr-1" />
+                          <strong>Tip:</strong> Login to save your contact details for faster messaging!
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   
                   <p className="text-xs text-center text-muted-foreground">
                     By submitting this form, you agree to our privacy policy. 
@@ -664,6 +821,7 @@ export function Contact() {
           </div>
 
           <div className="space-y-6">
+
             <Card>
               <CardHeader>
                 <CardTitle>Contact Information</CardTitle>
@@ -703,54 +861,6 @@ export function Contact() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Message Types Info Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="w-5 h-5" />
-                  Message Types & Priorities
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-                      <span className="text-sm">Urgent</span>
-                    </div>
-                    <span className="text-xs font-medium">1-2 hours</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                      <span className="text-sm">High</span>
-                    </div>
-                    <span className="text-xs font-medium">4-12 hours</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm">Normal</span>
-                    </div>
-                    <span className="text-xs font-medium">24 hours</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-                      <span className="text-sm">Low</span>
-                    </div>
-                    <span className="text-xs font-medium">48+ hours</span>
-                  </div>
-                  <div className="pt-3 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Priority is automatically assigned based on message type and content keywords.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className="bg-black text-white border-0">
               <CardHeader>
                 <CardTitle className="text-white">Business Hours</CardTitle>

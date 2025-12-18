@@ -59,47 +59,9 @@ import {
   deleteDoc,
   getDoc
 } from "../../firebase/firebase_config";
-import { ContactMessage, MessageType, MessagePriority } from '../../types/message';
+import { ContactMessage, MessageType} from '../../types/message';
 
-// Message type definitions from Contact.tsx
-/*
-type MessageType = 'workshop_booking' | 'space_rental' | '3d_printing' | 'technical_support' | 
-                   'training' | 'maintenance' | 'partnership' | 'general_inquiry' | 
-                   'feedback' | 'billing' | 'urgent_support';
 
-type MessagePriority = 'low' | 'normal' | 'high' | 'urgent';
-*/
-// Updated message interface for Firestore
-/*
-interface ContactMessage {
-  id: string; // Firestore document ID
-  message_id: string;
-  user_id?: string | null;
-  name: string;
-  email: string;
-  phone_number: string;
-  subject: string;
-  message: string;
-  message_type: MessageType;
-  message_type_label: string;
-  category: 'general' | 'technical' | 'billing' | 'feedback' | 'partnership';
-  status: 'new' | 'read' | 'replied' | 'closed';
-  priority: MessagePriority;
-  assigned_to?: string | null;
-  reply_message?: string;
-  replied_at?: Timestamp | null;
-  created_at: Timestamp;
-  isImportant?: boolean;
-  admin_notes?: string;
-  reply_history?: {
-    id: string;
-    admin_email: string;
-    admin_name: string;
-    reply_message: string;
-    timestamp: Timestamp;
-  }[];
-}
-*/
 // Message type configurations (matching Contact.tsx)
 const MESSAGE_TYPES = [
   {
@@ -107,77 +69,66 @@ const MESSAGE_TYPES = [
     label: 'Workshop/Seminar Booking',
     icon: Calendar,
     color: 'bg-blue-500',
-    defaultPriority: 'high' as MessagePriority
   },
   {
     id: 'space_rental' as MessageType,
     label: 'Space/Studio Rental',
     icon: Home,
     color: 'bg-green-500',
-    defaultPriority: 'high' as MessagePriority
   },
   {
     id: '3d_printing' as MessageType,
     label: '3D Printing Service',
     icon: PrinterIcon,
     color: 'bg-purple-500',
-    defaultPriority: 'normal' as MessagePriority
   },
   {
     id: 'technical_support' as MessageType,
     label: 'Technical Support',
     icon: Wrench,
     color: 'bg-orange-500',
-    defaultPriority: 'high' as MessagePriority
   },
   {
     id: 'training' as MessageType,
     label: 'Training Request',
     icon: GraduationCap,
     color: 'bg-indigo-500',
-    defaultPriority: 'normal' as MessagePriority
   },
   {
     id: 'maintenance' as MessageType,
     label: 'Equipment Maintenance',
     icon: Settings,
     color: 'bg-red-500',
-    defaultPriority: 'high' as MessagePriority
   },
   {
     id: 'partnership' as MessageType,
     label: 'Partnership/Corporate',
     icon: Handshake,
     color: 'bg-teal-500',
-    defaultPriority: 'normal' as MessagePriority
   },
   {
     id: 'general_inquiry' as MessageType,
     label: 'General Inquiry',
     icon: HelpCircle,
     color: 'bg-gray-500',
-    defaultPriority: 'low' as MessagePriority
   },
   {
     id: 'feedback' as MessageType,
     label: 'Feedback/Suggestions',
     icon: Heart,
     color: 'bg-pink-500',
-    defaultPriority: 'low' as MessagePriority
   },
   {
     id: 'billing' as MessageType,
     label: 'Billing/Payment',
     icon: DollarSign,
     color: 'bg-yellow-500',
-    defaultPriority: 'high' as MessagePriority
   },
   {
     id: 'urgent_support' as MessageType,
     label: 'Urgent Support',
     icon: AlertTriangle,
     color: 'bg-red-600',
-    defaultPriority: 'urgent' as MessagePriority
   }
 ];
 
@@ -284,11 +235,6 @@ function ReplyForm({ message, onSendReply, onCancel }: ReplyFormProps) {
                 <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">
                   {message.message_type_label}
                 </span>
-                <span className={`text-xs px-2 py-1 rounded ${
-                  PRIORITY_CONFIG[message.priority].bgColor + ' ' + PRIORITY_CONFIG[message.priority].color
-                }`}>
-                  {PRIORITY_CONFIG[message.priority].label} Priority
-                </span>
               </div>
               <p className="text-sm font-medium mb-1">{message.subject}</p>
               <p className="text-sm">{message.message}</p>
@@ -389,7 +335,6 @@ function MessageDetail({
 
   const messageType = MESSAGE_TYPES.find(t => t.id === message.message_type);
   const MessageTypeIcon = messageType?.icon || HelpCircle;
-  const priorityConfig = PRIORITY_CONFIG[message.priority];
 
   const saveAdminNotes = async () => {
     if (!adminNotes.trim() && !message.admin_notes) return;
@@ -508,14 +453,6 @@ function MessageDetail({
                         <span className="font-medium">{message.message_type_label}</span>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">Priority</div>
-                      <div className="flex items-center gap-2">
-                        <priorityConfig.icon className={`w-4 h-4 ${priorityConfig.color}`} />
-                        <span className={`font-medium ${priorityConfig.color}`}>
-                          {priorityConfig.label}
-                        </span>
-                      </div>
                     </div>
                     <div>
                       <div className="text-sm text-muted-foreground mb-1">Category</div>
@@ -665,7 +602,6 @@ function MessageDetail({
             </div>
           </div>
         </div>
-      </div>
 
       {/* Delete Confirmation */}
       {showDeleteConfirm && (
@@ -795,12 +731,6 @@ export default function MessagesManagementPage() {
       if (typeFilter !== "all" && message.message_type !== typeFilter) {
         return false;
       }
-
-      // Priority filter
-      if (priorityFilter !== "all" && message.priority !== priorityFilter) {
-        return false;
-      }
-
       return true;
     })
     .sort((a, b) => {
@@ -812,7 +742,6 @@ export default function MessagesManagementPage() {
           break;
         case "priority":
           const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
-          comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
           break;
         case "type":
           comparison = a.message_type.localeCompare(b.message_type);
@@ -1013,8 +942,6 @@ export default function MessagesManagementPage() {
     replied: messages.filter(m => m.status === 'replied').length,
     closed: messages.filter(m => m.status === 'closed').length,
     important: messages.filter(m => m.isImportant).length,
-    urgent: messages.filter(m => m.priority === 'urgent').length,
-    high: messages.filter(m => m.priority === 'high').length
   };
 
   // Refresh messages
@@ -1057,8 +984,6 @@ export default function MessagesManagementPage() {
             { label: "Replied", value: stats.replied, color: "bg-green-500/10", icon: Reply },
             { label: "Closed", value: stats.closed, color: "bg-gray-500/10", icon: CheckCircle },
             { label: "Important", value: stats.important, color: "bg-yellow-500/10", icon: Star },
-            { label: "Urgent", value: stats.urgent, color: "bg-red-600/10", icon: AlertCircle },
-            { label: "High", value: stats.high, color: "bg-orange-500/10", icon: AlertTriangle }
           ].map((stat, index) => (
             <div key={index} className="bg-card border rounded-xl p-4">
               <div className="flex items-center justify-between">
@@ -1247,8 +1172,6 @@ export default function MessagesManagementPage() {
                   filteredMessages.map((message) => {
                     const messageType = MESSAGE_TYPES.find(t => t.id === message.message_type);
                     const MessageTypeIcon = messageType?.icon || HelpCircle;
-                    const priorityConfig = PRIORITY_CONFIG[message.priority];
-
                     return (
                       <tr 
                         key={message.id} 
@@ -1297,14 +1220,6 @@ export default function MessagesManagementPage() {
                                 {message.message_type_label}
                               </span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6">
-                          <div className="flex items-center gap-2">
-                            <priorityConfig.icon className={`w-4 h-4 ${priorityConfig.color}`} />
-                            <span className={`text-sm font-medium ${priorityConfig.color}`}>
-                              {priorityConfig.label}
-                            </span>
                           </div>
                         </td>
                         <td className="py-4 px-6">
