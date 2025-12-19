@@ -29,7 +29,10 @@ import {
   Award,
   Plus,
   Book,
-  Image
+  Image,
+  ChartBarIcon,
+  RockingChairIcon,
+  PaperclipIcon
 } from 'lucide-react';
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase/firebase_config";
@@ -42,10 +45,10 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const fileInputRef = useRef(null);
-  const [avatar, setAvatar] = useState(userData?.photoURL || null);
+  const [avatar, setAvatar] = useState(userData?.photoUrl || null);
 
   useEffect(() => {
-    setAvatar(userData?.photoURL || null);
+    setAvatar(userData?.photoUrl || null);
   }, [userData]);
 
   useEffect(() => {
@@ -73,9 +76,9 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
     { to: '/instructor/courses', label: 'My Courses', icon: <BookOpen size={20} /> },
     { to: '/instructor/courses/create', label: 'Create Course', icon: <BookPlus size={20} /> },
     { to: '/instructor/students', label: 'Students', icon: <Users size={20} /> },
-    { to: '/instructor/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
-    { to: '/instructor/live-sessions', label: 'Live Sessions', icon: <Video size={20} /> },
-    { to: '/instructor/messages', label: 'Messages', icon: <MessageSquare size={20} /> },
+  //  { to: '/instructor/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
+    { to: '/instructor/my-materials', label: 'Course Materials', icon: <PaperclipIcon size={20} /> },
+  //  { to: '/instructor/messages', label: 'Messages', icon: <MessageSquare size={20} /> },
   ];
 
   const adminLinks = [
@@ -87,6 +90,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
     { to: '/dashboard/book-hall', label: 'Book Hall', icon: <Building size={20} /> },
     { to: '/admin/bookings', label: 'Booking Management', icon: <Calendar size={20} /> },
     { to: '/admin/courses', label: 'Course Management', icon: <Book size={20} /> },
+    { to: '/admin/hallmanagement', label: 'Hall Management', icon: <RockingChairIcon size={20} /> },
    // { to: '/admin/materials', label: 'Material Mangement', icon: <Users size={20} /> },
     //{ to: '/admin/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
     { to: '/admin/systemsettings', label: 'System Settings', icon: <Settings size={20} /> },
@@ -107,7 +111,7 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/auth/login';
+    window.location.href = '/';
   };
 
   const handleAvatarSelect = (e) => {
@@ -125,8 +129,8 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
 
     const sectionActive = {
       user: 'bg-blue-500 text-gray-200 gap-2',
-      instructor: 'bg-purple-600 text-white border-l-4 border-purple-600',
-      admin: 'bg-green-500 text-white border-l-4 border-red-600',
+      instructor: 'bg-blue-500 text-white ',
+      admin: 'bg-green-500 text-white ',
     };
 
     return (

@@ -14,14 +14,14 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-console.log("API KEY:", import.meta.env.VITE_FIREBASE_API_KEY);
+//console.log("API KEY:", import.meta.env.VITE_FIREBASE_API_KEY);
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export { collection, addDoc,getDoc, deleteDoc,setDoc, orderBy, query, where, getDocs, updateDoc, doc, serverTimestamp, Timestamp };
+export { collection,  addDoc,getDoc, deleteDoc,setDoc, orderBy, query, where, getDocs, updateDoc, doc, serverTimestamp, Timestamp };
 
 export default app;
 

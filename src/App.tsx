@@ -65,7 +65,8 @@ import MaterialManagement from './pages/Adminpages/ContentManagement/MaterialMan
 import BookingManagement from './pages/Adminpages/BookingManagement';
 import GalleryManagement from './pages/Adminpages/ContentManagement/GalleryManagement';
 import ContactMessages from './pages/Adminpages/ContactMessages';
-import SytemSettings from './pages/Adminpages/SystemSetting'
+import SytemSettings from './pages/Adminpages/SystemSetting';
+import HallManagement from './pages/Adminpages/ContentManagement/HallManagement'
 
 
 // Error Pages
@@ -183,6 +184,7 @@ const App = () => {
                 <Route path="gallery" element={<GalleryManagement/>} />
                 <Route path="messages" element={<ContactMessages />} />
                 <Route path="systemsettings" element={<SystemSetting />} />
+                <Route path="hallmanagement" element={<HallManagement/>} />
               </Route>
               
               {/* ================= 404 ================= */}

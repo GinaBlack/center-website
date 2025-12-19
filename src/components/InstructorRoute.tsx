@@ -1,16 +1,32 @@
-// src/components/InstructorRoute.jsx
+
 import React from 'react';
-import ProtectedRoute from './ProtectedRoute';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const InstructorRoute = ({ children }) => {
-    const { ROLES } = useAuth();
+interface InstructorRouteProps {
+  children: React.ReactNode;
+}
 
+const InstructorRoute: React.FC<InstructorRouteProps> = ({ children }) => {
+  const { currentUser, isInstructor, loading } = useAuth();
+
+  if (loading) {
     return (
-        <ProtectedRoute requiredRole={ROLES.INSTRUCTOR}>
-            {children}
-        </ProtectedRoute>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
     );
+  }
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!isInstructor) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 export default InstructorRoute;

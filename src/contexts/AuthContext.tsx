@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = (email: string, password: string) =>
     signInWithEmailAndPassword(auth, email, password);
 
-  const register = async (email: string, password: string, additionalData: any) => {
+  const register = async (email: string, password: string, additionalData: RegisterData) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     const user = cred.user;
 
@@ -42,6 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userDoc: UserData = {
       uid: user.uid,
       email: user.email || "",
+      firstName: additionalData.firstName || "",
       displayName: additionalData.displayName || "",
       role: additionalData.role || ROLES.USER,
       emailVerified: user.emailVerified,
@@ -62,11 +63,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     sendPasswordResetEmail(auth, email);
 
   const getUserRole = () => userData?.role || ROLES.USER;
+  
   const hasRole = (role: ROLES) => userData?.role === role;
-
+  
   const hasMinimumRole = (role: ROLES) => {
-    const LEVEL = { USER: 1, INSTRUCTOR: 2, ADMIN: 3 };
-    return LEVEL[getUserRole()] >= LEVEL[role];
+    const LEVEL: Record<ROLES, number> = {
+      [ROLES.USER]: 1,
+      [ROLES.INSTRUCTOR]: 2,
+      [ROLES.ADMIN]: 3
+    };
+    
+    const currentUserRole = getUserRole();
+    return LEVEL[currentUserRole] >= LEVEL[role];
   };
 
   /** ✅ CRITICAL: update avatar everywhere */
@@ -89,9 +97,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserLoggedIn(!!user);
 
       if (user) {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-          setUserData(snap.data() as UserData);
+        try {
+          const snap = await getDoc(doc(db, "users", user.uid));
+          if (snap.exists()) {
+            setUserData(snap.data() as UserData);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setUserData(null);
         }
       } else {
         setUserData(null);
@@ -108,6 +121,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     userLoggedIn,
     isAuthenticated: !!currentUser,
+    isInstructor: userData?.role === ROLES.INSTRUCTOR,
+    isAdmin: userData?.role === ROLES.ADMIN,
     login,
     register,
     logout,
@@ -133,14 +148,22 @@ export const useAuth = () => {
 
 /* ================== TYPES ================== */
 
+interface RegisterData {
+  displayName?: string;
+  firstName?: string;
+  role?: ROLES;
+}
+
 interface AuthContextType {
   currentUser: User | null;
   userData: UserData | null;
   loading: boolean;
   userLoggedIn: boolean;
   isAuthenticated: boolean;
+  isInstructor: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<UserCredential>;
-  register: (email: string, password: string, data: any) => Promise<void>;
+  register: (email: string, password: string, data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   getUserRole: () => ROLES;
@@ -152,6 +175,7 @@ interface AuthContextType {
 interface UserData {
   uid: string;
   email: string;
+  firstName: string;
   displayName: string;
   role: ROLES;
   emailVerified: boolean;
