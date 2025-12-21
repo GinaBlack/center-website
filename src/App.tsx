@@ -31,6 +31,7 @@ import LoginPage from './pages/Authpages/LoginPage';
 import RegisterPage from './pages/Authpages/RegisterPage';
 import ForgotPassword from './pages/Authpages/ForgotPassword';
 import ResetPassword from './pages/Authpages/ResetPassword';
+import VerifyEmail from './pages/Authpages/VerifyEmailPage';
 
 // Dashboard Pages (Role-Based)
 import UserDashboard from './pages/dashboard/UserDashboardPage';
@@ -117,6 +118,7 @@ const App = () => {
                 <Route path="register" element={<RegisterPage />} />
                 <Route path="forgot-password" element={<ForgotPassword />} />
                 <Route path="reset-password" element={<ResetPassword />} />
+                <Route path='verifyemail' element={<VerifyEmail/>}/>
               </Route>
 
               {/* ================= USER DASHBOARD ROUTE ================= */}

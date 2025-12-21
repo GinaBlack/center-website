@@ -17,6 +17,7 @@ import {
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase_config";
 import { ROLES } from "../constants/roles";
+import { useNavigate } from "react-router-dom"
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -25,9 +26,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-
+  const navigate = useNavigate();
   const login = (email: string, password: string) =>
-    signInWithEmailAndPassword(auth, email, password);
+  signInWithEmailAndPassword(auth, email, password);
 
   const register = async (email: string, password: string, additionalData: RegisterData) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -37,6 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await updateProfile(user, { displayName: additionalData.displayName });
     }
 
+    // Send verification email
     await sendEmailVerification(user);
 
     const userDoc: UserData = {
@@ -53,31 +55,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     await setDoc(doc(db, "users", user.uid), userDoc);
     setUserData(userDoc);
+    navigate("/auth/verifyemail");
   };
 
   const logout = async () => {
     await auth.signOut();
   };
 
-  const resetPassword = (email: string) =>
-    sendPasswordResetEmail(auth, email);
+  const resetPassword = (email: string) => sendPasswordResetEmail(auth, email);
+
+  /** ✅ Email Verification Helpers */
+
+  // Refresh the user's emailVerified status
+  const refreshEmailVerification = async () => {
+    if (currentUser) {
+      await currentUser.reload();
+      setUserData(prev =>
+        prev ? { ...prev, emailVerified: currentUser.emailVerified } : prev
+      );
+    }
+  };
+
+  // Resend verification email
+  const resendVerificationEmail = async () => {
+    if (currentUser && !currentUser.emailVerified) {
+      await sendEmailVerification(currentUser);
+      alert('Verification email resent! Please check your inbox.');
+    }
+  };
 
   const getUserRole = () => userData?.role || ROLES.USER;
-  
+
   const hasRole = (role: ROLES) => userData?.role === role;
-  
+
   const hasMinimumRole = (role: ROLES) => {
     const LEVEL: Record<ROLES, number> = {
       [ROLES.USER]: 1,
       [ROLES.INSTRUCTOR]: 2,
-      [ROLES.ADMIN]: 3
+      [ROLES.ADMIN]: 3,
     };
-    
     const currentUserRole = getUserRole();
     return LEVEL[currentUserRole] >= LEVEL[role];
   };
 
-  /** ✅ CRITICAL: update avatar everywhere */
   const updateUserPhoto = async (photoUrl: string) => {
     if (!currentUser) return;
 
@@ -86,9 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       updatedAt: new Date().toISOString(),
     });
 
-    setUserData(prev =>
-      prev ? { ...prev, photoUrl } : prev
-    );
+    setUserData(prev => (prev ? { ...prev, photoUrl } : prev));
   };
 
   useEffect(() => {
@@ -100,7 +118,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const snap = await getDoc(doc(db, "users", user.uid));
           if (snap.exists()) {
-            setUserData(snap.data() as UserData);
+            const data = snap.data() as UserData;
+
+            // Keep Firebase emailVerified in sync
+            data.emailVerified = user.emailVerified;
+
+            setUserData(data);
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -120,7 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userData,
     loading,
     userLoggedIn,
-    isAuthenticated: !!currentUser,
+    isAuthenticated: !!currentUser && !!userData?.emailVerified,
     isInstructor: userData?.role === ROLES.INSTRUCTOR,
     isAdmin: userData?.role === ROLES.ADMIN,
     login,
@@ -131,6 +154,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     hasRole,
     hasMinimumRole,
     updateUserPhoto,
+    // New email verification functions
+    refreshEmailVerification,
+    resendVerificationEmail,
   };
 
   return (
@@ -147,7 +173,6 @@ export const useAuth = () => {
 };
 
 /* ================== TYPES ================== */
-
 interface RegisterData {
   displayName?: string;
   firstName?: string;
@@ -170,6 +195,9 @@ interface AuthContextType {
   hasRole: (role: ROLES) => boolean;
   hasMinimumRole: (role: ROLES) => boolean;
   updateUserPhoto: (photoUrl: string) => Promise<void>;
+  // Email verification
+  refreshEmailVerification: () => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
 }
 
 interface UserData {

@@ -12,11 +12,19 @@ import { ROLES } from "../constants/roles";
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-
+  const { login, userData } = useAuth();
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+const handleLogin = async (email: string, password: string) => {
+    await login(email, password);
+    if (!userData?.emailVerified) {
+      navigate("/auth/verify-email");
+    } else {
+      navigate("/dashboard"); // or your app’s main page
+    }
+};
 
   const { isAuthenticated, hasRole, logout } = useAuth();
 
@@ -245,7 +253,7 @@ export function Navigation() {
                 </Button>
               ) : (
                 <Button
-                  onClick={() => navigateTo("/auth/login")}
+                  onClick={handleLogin}
                   className={`
                     mt-4 p-4 w-full rounded-lg font-medium
                     ${isActive("/auth/login") ? "bg-black text-white" : ""}
