@@ -73,8 +73,8 @@ import HallManagement from './pages/Adminpages/ContentManagement/HallManagement'
 // Error Pages
 import Unauthorized from './pages/Errors/Unauthorised';
 import NotFound from './pages/Errors/NotFound';
-import { User } from 'lucide-react';
 import SystemSetting from './pages/Adminpages/SystemSetting';
+import VerifiedRoute from './components/VerifiedRoute';
 
 // Role-Based Dashboard Component
 const RoleBasedDashboard = () => {
@@ -125,9 +125,11 @@ const App = () => {
               <Route
                 path="/dashboard"
                 element={
+                  <VerifiedRoute>
                   <ProtectedRoute>
                     <DashboardLayout />
                   </ProtectedRoute>
+                  </VerifiedRoute>
                 }
               >
                 <Route index element={<RoleBasedDashboard />} />
@@ -155,9 +157,11 @@ const App = () => {
               <Route
                 path="/instructor"
                 element={
+                  <VerifiedRoute>
                   <InstructorRoute>
                     <DashboardLayout />
                   </InstructorRoute>
+                  </VerifiedRoute>
                 }
               >
                 <Route path="courses">
@@ -172,9 +176,11 @@ const App = () => {
               <Route
                 path="/admin"
                 element={
+                  <VerifiedRoute>
                   <AdminRoute>
                     <DashboardLayout />
                   </AdminRoute>
+                  </VerifiedRoute>
                 }
               >
                 <Route path="users" element={<UserManagement />} />

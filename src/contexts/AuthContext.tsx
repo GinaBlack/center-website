@@ -39,7 +39,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Send verification email
-    await sendEmailVerification(user);
+    await sendEmailVerification(user, {
+    url: `${window.location.origin}/auth/verifyemail`,
+  });
 
     const userDoc: UserData = {
       uid: user.uid,
