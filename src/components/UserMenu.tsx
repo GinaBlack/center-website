@@ -55,8 +55,8 @@ const UserMenu = () => {
     );
   }
 
-  const initials = userData?.firstName && userData?.lastName
-    ? `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`
+  const initials = userData?.firstName
+    ? userData.firstName.charAt(0).toUpperCase()
     : "U";
 
   return (
