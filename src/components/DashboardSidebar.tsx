@@ -174,7 +174,8 @@ const DashboardSidebar = ({ mobileOnly = false }) => {
       case ROLES.USER:
         return 'User';
       default:
-        navigate("/");
+        //navigate("/");
+        'user';
     }
   };
 
