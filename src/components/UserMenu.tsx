@@ -12,6 +12,7 @@ const UserMenu = () => {
   }
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const userName =  `${userData.first_name} ${userData.last_name}` ;
 
   const isActive = (path) => {
     return path === "/"
@@ -54,8 +55,8 @@ const UserMenu = () => {
     );
   }
 
-  const initials = userData?.displayName
-    ? userData.displayName.charAt(0).toUpperCase()
+  const initials = userData?.firstName && userData?.lastName
+    ? `${userData.firstName.charAt(0)}${userData.lastName.charAt(0)}`
     : "U";
 
   return (
@@ -72,8 +73,8 @@ const UserMenu = () => {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48  bg-gray-100 rounded shadow-lg border py-1 z-50">
           <div className="px-4 py-2 border-b">
-            <p className="font-medium">{userData?.displayName || "User"}</p>
-            <p className="text-sm text-gray-500">{userData?.email || ""}</p>
+            <p className="font-medium">{userName}</p>
+            <p className="text-sm text-gray-500">{userData?.email}</p>
           </div>
 
           <Link

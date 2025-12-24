@@ -92,9 +92,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const hasMinimumRole = (role: ROLES) => {
     const LEVEL: Record<ROLES, number> = {
-      [ROLES.USER]: 1,
-      [ROLES.INSTRUCTOR]: 2,
-      [ROLES.ADMIN]: 3,
+  [ROLES.USER]: 1,
+  [ROLES.INSTRUCTOR]: 2,
+  [ROLES.CENTER_ADMIN]: 3,
+  [ROLES.SUPER_ADMIN]: 4
     };
     const currentUserRole = getUserRole();
     return LEVEL[currentUserRole] >= LEVEL[role];
@@ -147,7 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     userLoggedIn,
     isAuthenticated: !!currentUser && !!userData?.emailVerified,
     isInstructor: userData?.role === ROLES.INSTRUCTOR,
-    isAdmin: userData?.role === ROLES.ADMIN,
+    isAdmin: userData?.role === ROLES.CENTER_ADMIN || userData?.role === ROLES.SUPER_ADMIN,
     login,
     register,
     logout,

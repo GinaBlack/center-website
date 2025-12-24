@@ -31,7 +31,7 @@ export function LoginPage() {
 
   const getDashboardRoute = (role: string | undefined) => {
     switch (role) {
-      case ROLES.ADMIN: return "/admin";
+      case ROLES.CENTER_ADMIN: return "/admin";
       case ROLES.INSTRUCTOR: return "/instructor";
       default: return "/dashboard";
     }
@@ -133,7 +133,7 @@ export function LoginPage() {
           <h1 className="login-title">
             Welcome to 3D Printing High-Tech Center
           </h1>
-          <p className="login-subtitle">Sign in to manage your projects</p>
+          <p className="login-subtitle">Sign in to manage your Projects, Bookings and Registered Trainings</p>
         </div>
         </div>
 
@@ -256,9 +256,41 @@ export function LoginPage() {
                 GitHub
               </Button>
             </div>
+            <div className="text-center text-sm pt-4 border-t border-gray-200">
+                <p className="text-gray-600">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    className="font-medium text-blue-600 hover:text-blue-500"
+                    onClick={() => navigate("/auth/register")}
+                  >
+                    Sign up
+                  </button>
+                </p>
+              </div>
           </form>
         </CardContent>
       </Card>
+      <div className="mt-6 text-center text-sm text-gray-500">
+          <p>
+            By continuing, you agree to our{" "}
+            <button
+              type="button"
+              className="font-medium text-blue-600 hover:text-blue-500"
+              onClick={() => window.location.hash = "terms"}
+            >
+              Terms of Service
+            </button>{" "}
+            and{" "}
+            <button
+              type="button"
+              className="font-medium text-blue-600 hover:text-blue-500"
+              onClick={() => window.location.hash = "privacy"}
+            >
+              Privacy Policy
+            </button>
+          </p>
+        </div>
     </div>
     </div>
     

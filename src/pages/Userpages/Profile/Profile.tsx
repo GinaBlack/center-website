@@ -1,385 +1,316 @@
-import React, { useState } from 'react';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  Edit, 
-  Save, 
-  X, 
-  Camera,
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../../../firebase/firebase_config";
+
+const AvatarPlaceholder = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iNTAiIGN5PSI1MCIgcj0iNTAiIGZpbGw9IiNlMGUwZTAiLz48cGF0aCBkPSJNNTAgMzVjLTguMjgzIDAtMTUgNi43MTctMTUgMTVzNi43MTcgMTUgMTUgMTUgMTUtNi43MTcgMTUtMTUtNi43MTctMTUtMTUtMTV6bTAgNDBjLTEzLjgwNyAwLTI1IDExLjE5My0yNSAyNWg1MGMwLTEzLjgwNy0xMS4xOTMtMjUtMjUtMjV6IiBmaWxsPSIjYWFhIi8+PC9zdmc+";
+
+import {
+  Edit,
+  Save,
   Lock,
-  Globe,
-  Briefcase,
-  GraduationCap,
-  Award,
-  Clock,
-  BookOpen
-} from 'lucide-react';
+  Shield,
+  Trash2,
+  Mail,
+  CheckCircle
+} from "lucide-react";
+
+/* ================= TYPES ================= */
 
 interface UserProfile {
-  id: number;
-  name: string;
-  email: string;
+  first_name: string;
+  last_name: string;
   phone: string;
-  location: string;
-  joinDate: string;
-  avatar: string;
-  bio: string;
-  jobTitle: string;
-  company: string;
-  education: string;
-  skills: string[];
-  enrolledCourses: number;
-  completedCourses: number;
-  hoursSpent: number;
+  address: string;
 }
 
+/* ================= COMPONENT ================= */
+
 const Profile: React.FC = () => {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState<UserProfile>({
-    id: 1,
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    phone: '+1 (555) 123-4567',
-    location: 'San Francisco, CA',
-    joinDate: '2023-03-15',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    bio: 'Passionate about technology and continuous learning. Currently focused on mastering 3D printing and CAD design.',
-    jobTitle: 'Product Designer',
-    company: 'Tech Innovations Inc.',
-    education: 'MSc in Industrial Design, Stanford University',
-    skills: ['3D Modeling', 'CAD Design', 'Prototyping', 'Product Design', 'UI/UX', 'Project Management'],
-    enrolledCourses: 8,
-    completedCourses: 5,
-    hoursSpent: 142
+    first_name: "",
+    last_name: "",
+    phone: "",
+    address: ""
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<UserProfile>({ ...profile });
+  const [originalProfile, setOriginalProfile] = useState<UserProfile | null>(null);
 
-  const handleSave = () => {
-    setProfile(editedProfile);
-    setIsEditing(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  /* ================= FETCH PROFILE ================= */
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const loadProfile = async () => {
+      try {
+        const ref = doc(db, "users", currentUser.uid);
+        const snap = await getDoc(ref);
+
+        if (snap.exists()) {
+          const data = snap.data();
+          const loaded = {
+            first_name: data.first_name || "",
+            last_name: data.last_name || "",
+            phone: data.phone || "",
+            address: data.address || ""
+          };
+
+          setProfile(loaded);
+          setOriginalProfile(loaded);
+        }
+      } catch {
+        setError("Failed to load profile information.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [currentUser]);
+
+  /* ================= VALIDATION ================= */
+
+  const validationErrors = useMemo(() => {
+    const errors: string[] = [];
+
+    if (profile.first_name.trim().length < 2 || profile.first_name.length > 20) {
+      errors.push("First name must be between 2 and 20 characters.");
+    }
+
+    if (profile.last_name.trim().length < 2 || profile.last_name.length > 20) {
+      errors.push("Last name must be between 2 and 20 characters.");
+    }
+
+    if (profile.phone && !/^[0-9+\s]{9,20}$/.test(profile.phone)) {
+      errors.push("Phone number format is invalid.");
+    }
+
+    return errors;
+  }, [profile]);
+
+  const hasChanges = useMemo(() => {
+    return JSON.stringify(profile) !== JSON.stringify(originalProfile);
+  }, [profile, originalProfile]);
+
+  /* ================= UNSAVED CHANGES WARNING ================= */
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (editing && hasChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [editing, hasChanges]);
+
+  /* ================= SAVE ================= */
+
+  const handleSave = async () => {
+    if (!currentUser || validationErrors.length > 0) return;
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await setDoc(
+        doc(db, "users", currentUser.uid),
+        {
+          ...profile,
+          updated_at: new Date()
+        },
+        { merge: true }
+      );
+
+      setOriginalProfile(profile);
+      setEditing(false);
+      setSuccess("Profile updated successfully.");
+    } catch {
+      setError("Failed to save profile changes.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleCancel = () => {
-    setEditedProfile({ ...profile });
-    setIsEditing(false);
-  };
+  /* ================= UI ================= */
 
-  const handleInputChange = (field: keyof UserProfile, value: string) => {
-    setEditedProfile(prev => ({ ...prev, [field]: value }));
-  };
-
-  const formatJoinDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading profile…
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen py-20  bg-gray-50">
-      <div className="  p-4 mx-auto px-4 pb-20">
-        {/* Profile Header */}
-        <div className="relative -mt-20 mb-8">
-          <div className="flex flex-col  sm:flex-row items-start sm:items-end gap-6">
-            {/* Avatar */}
-            <div className="relative">
-              <img 
-                src={profile.avatar} 
-                alt={profile.name}
-                className="w-25 h-25 rounded-full border-4 border-white shadow-lg object-cover"
-              />
-              <button className="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100">
-                <Camera className="w-4 h-4" />
-              </button>
-            </div>
+    <div className="min-h-screen bg-gray-50 py-20 px-4">
+      <div className="max-w-3xl mx-auto bg-white border rounded-xl p-6 space-y-10">
 
-            {/* Name and Actions */}
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
-                  <p className="text-gray-600 text-lg">{profile.jobTitle} • {profile.company}</p>
-                </div>
-                <div className="flex gap-3">
-                  {!isEditing ? (
-                    <>
-                      <button
-                        onClick={() => setIsEditing(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                      >
-                        <Edit className="w-4 h-4" />
-                        Edit Profile
-                      </button>
-                      <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                        Share Profile
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleSave}
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                      >
-                        <Save className="w-4 h-4" />
-                        Save Changes
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-                      >
-                        <X className="w-4 h-4" />
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
+        {/* HEADER */}
+        <div className="flex items-center gap-6">
+          <img
+            src={AvatarPlaceholder}
+            alt="Avatar"
+            className="w-25 h-25 rounded-full border object-cover"
+          />
+          
 
-              {/* Member Since */}
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span>Member since {formatJoinDate(profile.joinDate)}</span>
-              </div>
-            </div>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold">
+              {profile.first_name || "—"} {profile.last_name || ""}
+            </h1>
+            <p className="text-gray-500">
+              Manage your profile and account settings
+            </p>
           </div>
+
+          <button
+            onClick={() => setEditing(!editing)}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg"
+          >
+            <Edit size={16} />
+            {editing ? "Cancel" : "Edit"}
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Personal Info */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* About Section */}
-            <div className="bg-white rounded-xl border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">About</h2>
-                {isEditing && (
-                  <span className="text-sm text-blue-600">Editing</span>
-                )}
-              </div>
-              
-              {isEditing ? (
-                <textarea
-                  value={editedProfile.bio}
-                  onChange={(e) => handleInputChange('bio', e.target.value)}
-                  className="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Tell us about yourself..."
-                />
-              ) : (
-                <p className="text-gray-700 leading-relaxed">{profile.bio}</p>
-              )}
-            </div>
+        {/* PROFILE DETAILS */}
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">Profile Details</h2>
 
-            {/* Skills Section */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Skills</h2>
-              <div className="flex flex-wrap gap-2">
-                {profile.skills.map((skill, index) => (
-                  <span 
-                    key={index}
-                    className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
-                  >
-                    {skill}
-                  </span>
-                ))}
-                {isEditing && (
-                  <button className="px-3 py-1.5 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-600">
-                    + Add Skill
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Contact Information */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Contact Information</h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <Mail className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    {isEditing ? (
-                      <input
-                        type="email"
-                        value={editedProfile.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="border-b focus:outline-none focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.email}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <Phone className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    {isEditing ? (
-                      <input
-                        type="tel"
-                        value={editedProfile.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="border-b focus:outline-none focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.phone}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <MapPin className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Location</p>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedProfile.location}
-                        onChange={(e) => handleInputChange('location', e.target.value)}
-                        className="border-b focus:outline-none focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.location}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* EMAIL */}
+          <div>
+            <label className="text-sm text-gray-600 flex items-center gap-2">
+              <Mail size={14} /> Email
+            </label>
+            <input
+              value={currentUser?.email || ""}
+              placeholder="your@email.com"
+              disabled
+              className="w-full mt-1 border rounded-lg px-3 py-2 bg-gray-100"
+            />
           </div>
 
-          {/* Right Column - Stats & Details */}
-          <div className="space-y-8">
-            {/* Learning Stats */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Learning Stats</h2>
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <BookOpen className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Enrolled Courses</p>
-                      <p className="text-lg font-bold">{profile.enrolledCourses}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-lg">
-                      <Award className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Completed</p>
-                      <p className="text-lg font-bold">{profile.completedCourses}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <Clock className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Hours Spent</p>
-                      <p className="text-lg font-bold">{profile.hoursSpent}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Professional Info */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Professional Information</h2>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <Briefcase className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Job Title</p>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedProfile.jobTitle}
-                        onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                        className="border-b focus:outline-none focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.jobTitle}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <Briefcase className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Company</p>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedProfile.company}
-                        onChange={(e) => handleInputChange('company', e.target.value)}
-                        className="border-b focus:outline-none focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.company}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <GraduationCap className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Education</p>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedProfile.education}
-                        onChange={(e) => handleInputChange('education', e.target.value)}
-                        className="border-b focus:outline-none focus:border-blue-500"
-                      />
-                    ) : (
-                      <p className="font-medium">{profile.education}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Account Actions */}
-            <div className="bg-white rounded-xl border p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Account</h2>
-              <div className="space-y-3">
-                <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-3">
-                  <Globe className="w-5 h-5 text-gray-600" />
-                  <span>Privacy Settings</span>
-                </button>
-                <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-3">
-                  <Lock className="w-5 h-5 text-gray-600" />
-                  <span>Change Password</span>
-                </button>
-                <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-3 text-red-600">
-                  <X className="w-5 h-5" />
-                  <span>Delete Account</span>
-                </button>
-              </div>
-            </div>
+          <div>
+            <label className="text-sm text-gray-500">First Name</label>
+            <input
+              value={profile.first_name}
+              placeholder="Enter your first name"
+              disabled={!editing}
+              onChange={(e) =>
+                setProfile({ ...profile, first_name: e.target.value })
+              }
+              className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
+            />
           </div>
+
+          <div>
+            <label className="text-sm text-gray-500">Last Name</label>
+            <input
+              value={profile.last_name}
+              placeholder="Enter your last name"
+              disabled={!editing}
+              onChange={(e) =>
+                setProfile({ ...profile, last_name: e.target.value })
+              }
+              className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-500">Phone Number</label>
+            <input
+              value={profile.phone}
+              placeholder="e.g. +237 6XX XXX XXX"
+              disabled={!editing}
+              onChange={(e) =>
+                setProfile({ ...profile, phone: e.target.value })
+              }
+              className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-gray-500">Address</label>
+            <input
+              value={profile.address}
+              placeholder="Enter your address (optional)"
+              disabled={!editing}
+              onChange={(e) =>
+                setProfile({ ...profile, address: e.target.value })
+              }
+              className="w-full border rounded-lg px-3 py-2 disabled:bg-gray-100"
+            />
+          </div>
+
+          {validationErrors.length > 0 && (
+            <div className="text-red-500 text-sm space-y-1">
+              {validationErrors.map((e, i) => (
+                <p key={i}>• {e}</p>
+              ))}
+            </div>
+          )}
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {success && (
+            <p className="text-green-500 text-sm flex items-center gap-2">
+              <CheckCircle size={14} /> {success}
+            </p>
+          )}
+
+          {editing && (
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges || validationErrors.length > 0 || saving}
+              className="mt-4 flex items-center gap-2 px-6 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50"
+            >
+              <Save size={16} />
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          )}
+        </section>
+
+        {/* ACCOUNT SETTINGS */}
+        <div className="space-y-4  pt-8">
+        <section className="space-y-4 border-t pt-4">
+          <h2 className="text-lg font-semibold">Account Settings</h2>
+
+          <button
+            onClick={() => navigate("/dashboard/change-password")}
+            className="w-full flex items-center gap-3 px-4 py-3 border rounded-lg"
+          >
+            <Lock size={18} />
+            Change Password
+          </button>
+
+          <button
+            onClick={() => navigate("/dashboard/settings")}
+            className="w-full flex items-center gap-3 px-4 py-3 border rounded-lg"
+          >
+            <Shield size={18} />
+            Privacy Settings
+          </button>
+
+          <button
+            disabled
+            className="w-full flex items-center gap-3 px-4 py-3 border rounded-lg text-red-600 opacity-60"
+          >
+            <Trash2 size={18} />
+            Delete Account (Coming Soon)
+          </button>
+        </section>
         </div>
       </div>
     </div>

@@ -106,7 +106,7 @@ const ProjectManagement: React.FC = () => {
   const [newTag, setNewTag] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
-  const isAdmin = userData?.role === ROLES.ADMIN;
+  const isAdmin = userData?.role === ROLES.CENTER_ADMIN || ROLES.SUPER_ADMIN;
 
   // Fetch projects from Firestore
   const fetchProjects = async () => {

@@ -1,89 +1,68 @@
-import { Menu, X, User, LogOut, Moon, Sun } from "lucide-react";
+import { Menu, X, LogOut, Moon, Sun } from "lucide-react";
 import { useState } from "react";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "./ui/button";
 import { useTheme } from "next-themes";
 import { useTranslation } from "../hooks/useTranslation";
 import UserMenu from "./UserMenu";
-import logo from '../assets/images/logo.png';
+import logo from "../assets/images/logo.png";
 import { ROLES } from "../constants/roles";
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const { login, userData } = useAuth();
+
+  const { isAuthenticated, hasRole, logout } = useAuth();
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-const handleLogin = async (email: string, password: string) => {
-    await login(email, password);
-    if (!userData?.emailVerified) {
-      navigate("/auth/verify-email");
-    } else {
-      navigate("/dashboard"); // or your app’s main page
-    }
-};
 
-  const { isAuthenticated, hasRole, logout } = useAuth();
 
-  const navItems = [
+  /* ---------------- NAV ITEMS ---------------- */
+
+  const publicNavItems = [
     { path: "/", label: t("navigation.home") },
     { path: "/services", label: t("navigation.services") },
     { path: "/gallery", label: t("navigation.gallery") },
+    { path: "/dashboard/projects/upload", label: "Submit Project" },
+    { path: "/dashboard/book-hall", label: "Book Hall" },
+    { path: "/dashboard/scanning", label: "3D Scanning" },
     { path: "/workshops", label: t("navigation.workshops") },
     { path: "/about", label: t("navigation.about") },
-    { path: "/contact", label: t("navigation.contact") }
+    { path: "/contact", label: t("navigation.contact") },
+
   ];
 
-  // Smooth page navigation
-  const navigateTo = async (path) => {
+  /* ---------------- HELPERS ---------------- */
+
+  const isActive = (path: string) =>
+    path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
+
+  const navigateTo = async (path: string) => {
     if (isAnimating || location.pathname === path) return;
 
     setIsAnimating(true);
 
-    const mainContent = document.querySelector("main");
-    if (mainContent) {
-      mainContent.classList.add(
-        "opacity-0",
-        "translate-y-4",
-        "transition-all",
-        "duration-300"
-      );
-    }
+    const main = document.querySelector("main");
+    main?.classList.add("opacity-0", "translate-y-4", "transition-all", "duration-300");
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
+    await new Promise((r) => setTimeout(r, 200));
     navigate(path);
+    await new Promise((r) => setTimeout(r, 50));
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    if (mainContent) {
-      mainContent.classList.remove("opacity-0", "translate-y-4");
-      mainContent.classList.add("opacity-100", "translate-y-0");
-    }
+    main?.classList.remove("opacity-0", "translate-y-4");
+    main?.classList.add("opacity-100", "translate-y-0");
 
     setTimeout(() => {
       setIsAnimating(false);
-      if (mainContent) {
-        mainContent.classList.remove(
-          "transition-all",
-          "duration-300",
-          "opacity-100",
-          "translate-y-0"
-        );
-      }
+      main?.classList.remove("transition-all", "duration-300");
     }, 300);
 
-    // Close mobile menu on navigation
     setIsMenuOpen(false);
-  };
-
-  const isActive = (path) => {
-    return path === "/"
-      ? location.pathname === "/"
-      : location.pathname.startsWith(path);
   };
 
   const handleLogout = async () => {
@@ -91,88 +70,79 @@ const handleLogin = async (email: string, password: string) => {
     navigate("/");
   };
 
+  /* ---------------- RENDER ---------------- */
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b">
-      <div className=" mx-auto px-4 sm:px-6 lg:px-8">
-        {/* NAV BAR */}
+      <div className="mx-auto px-4 sm:px-6 lg:px-8">
+        {/* TOP BAR */}
         <div className="flex justify-between items-center h-16">
           <button
             onClick={() => navigateTo("/")}
-            className="flex items-center  hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80"
           >
             <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
             <span className="tracking-tight">{t("navigation.logo")}</span>
           </button>
 
-          <div className="flex items-center">
-            {/* DESKTOP NAVIGATION */}
-            <div className="hidden lg:flex items-center gap-4 ">
-              {navItems.map((item) => (
+          {/* DESKTOP NAV */}
+          <div className="hidden lg:flex items-center gap-4">
+            {[...publicNavItems, ].map(
+              (item) => (
                 <button
                   key={item.path}
                   onClick={() => navigateTo(item.path)}
                   disabled={isAnimating}
                   className={`
-                    relative px-4 py-2 rounded-lg text-sm font-medium
-                    transition-all duration-300 transform
+                    relative px-4 py-2 rounded-lg text-sm font-medium transition-all
                     ${isActive(item.path)
                       ? "bg-black text-white shadow-lg scale-105"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }
-                    hover:scale-105 active:scale-95
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"}
                   `}
                 >
                   {item.label}
-                  {/* Active indicator dot */}
                   {isActive(item.path) && (
                     <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
                   )}
                 </button>
-              ))}
+              )
+            )}
 
-              <UserMenu />
+            <UserMenu />
 
-            {/* THEME TOGGLE & USER MENU */}
-            <div className="flex items-center  ml-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-lg"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                <Sun className="theme-icon sun" />
-                <Moon className="theme-icon moon" />
-              </Button>
-            </div>
-            </div>
-
-
-            {/* MOBILE BURGER MENU */}
-            <button
-              className="lg:hidden p-2 ml-2 rounded-lg hover:bg-muted transition-colors"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              {isMenuOpen ? <X /> : <Menu />}
-            </button>
+              <Sun className="theme-icon sun" />
+              <Moon className="theme-icon moon" />
+            </Button>
           </div>
+
+          {/* MOBILE TOGGLE */}
+          <button
+            className="lg:hidden p-2 rounded-lg hover:bg-muted"
+            onClick={() => setIsMenuOpen((v) => !v)}
+          >
+            {isMenuOpen ? <X /> : <Menu />}
+          </button>
+          
         </div>
 
-        {/* MOBILE NAVIGATION */}
+        {/* MOBILE MENU */}
         {isMenuOpen && (
           <div className="lg:hidden py-4 border-t">
-            <div className="flex flex-col gap-2">
-              {navItems.map((item) => (
+            {[...publicNavItems, ].map(
+              (item) => (
                 <button
                   key={item.path}
                   onClick={() => navigateTo(item.path)}
                   className={`
-                    p-4 rounded-lg text-left font-medium
-                    transition-all duration-300
-                    flex items-center justify-between
+                    p-4 rounded-lg text-left font-medium flex justify-between
                     ${isActive(item.path)
-                      ? "bg-black text-white shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }
+                      ? "bg-black text-white"
+                      : "text-muted-foreground hover:bg-muted"}
                   `}
                 >
                   <span>{item.label}</span>
@@ -180,90 +150,39 @@ const handleLogin = async (email: string, password: string) => {
                     <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                   )}
                 </button>
-              ))}
+              )
+            )}
 
-              {hasRole(ROLES.USER) && (
-                <button
-                  onClick={() => navigateTo("/dashboard")}
-                  className={`
-                    p-4 rounded-lg text-left font-medium
-                    transition-all duration-300
-                    flex items-center justify-between
-                    ${isActive("/dashboard")
-                      ? "bg-blue-500 text-white shadow-lg"
-                      : "text-blue-500 hover:text-white hover:bg-green-50"
-                    }
-                  `}
-                >
-                  <span>Dashboard</span>
-                  {isActive("/dashboard") && (
-                    <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-                  )}
-                </button>
-              )}
+            {/* ROLE SECTIONS */}
+            {hasRole(ROLES.USER) && (
+              <button onClick={() => navigateTo("/dashboard")} className="p-4 text-blue-500">
+                Dashboard
+              </button>
+            )}
 
-             {hasRole(ROLES.INSTRUCTOR) && (
-                <button
-                  onClick={() => navigateTo("/instructor")}
-                  className={`
-                    p-4 rounded-lg text-left font-medium
-                    transition-all duration-300
-                    flex items-center justify-between
-                    ${isActive("/instructor")
-                      ? "bg-red-900 text-white shadow-lg"
-                      : "text-red-600 hover:text-red-800 hover:bg-red-50"
-                    }
-                  `}
-                >
-                  <span>Instructor</span>
-                  {isActive("/admin") && (
-                    <span className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-                  )}
-                </button>
-              )}
+            {hasRole(ROLES.INSTRUCTOR) && (
+              <button onClick={() => navigateTo("/instructor")} className="p-4 text-red-600">
+                Instructor
+              </button>
+            )}
 
-              {hasRole(ROLES.ADMIN) && (
-                <button
-                  onClick={() => navigateTo("/admin/users")}
-                  className={`
-                    p-4 rounded-lg text-left font-medium
-                    transition-all duration-300
-                    flex items-center justify-between
-                    ${isActive("/admin")
-                      ? "bg-blue-500 text-white shadow-lg"
-                      : "text-blue-600 hover:bg-muted hover:bg-red-50"
-                    }
-                  `}
-                >
-                  <span>Admin</span>
-                  {isActive("/admin") && (
-                    <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  )}
-                </button>
-              )}
+            {hasRole(ROLES.CENTER_ADMIN) || hasRole(ROLES.CENTER_ADMIN) && (
+              <button onClick={() => navigateTo("/admin/users")} className="p-4 text-purple-600">
+                Admin
+              </button>
+            )}
 
-              {isAuthenticated ? (
-                <Button
-                  onClick={handleLogout}
-                  variant="destructive"
-                  className="mt-4 p-4 w-full rounded-lg font-medium"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleLogin}
-                  className={`
-                    mt-4 p-4 w-full rounded-lg font-medium
-                    ${isActive("/auth/login") ? "bg-black text-white" : ""}
-                  `}
-                >
-                  Login
-                </Button>
-              )}
-
-              {/* Mobile theme toggle */}
+            {isAuthenticated ? (
+              <Button onClick={handleLogout} variant="destructive" className="mt-4 w-full">
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
+            ) : (
+              <Button onClick={() => navigate("/auth/login")} className="mt-4 w-full">
+                Login
+              </Button>
+            )}
+                         {/* Mobile theme toggle */}
               <div className="mt-4 p-4 border-t  pt-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Theme</span>
@@ -288,8 +207,9 @@ const handleLogin = async (email: string, password: string) => {
                 </div>
               </div>
             </div>
-          </div>
+          
         )}
+        
       </div>
     </nav>
   );

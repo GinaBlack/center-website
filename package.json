@@ -36,6 +36,7 @@
 		"date-fns": "^3.6.0",
 		"embla-carousel-react": "^8.6.0",
 		"firebase": "^12.6.0",
+		"firebase-admin": "^13.6.0",
 		"input-otp": "^1.4.2",
 		"lucide-react": "^0.487.0",
 		"motion": "^12.23.24",
@@ -57,6 +58,7 @@
 		"vaul": "^1.1.2"
 	},
 	"devDependencies": {
+		"@types/lodash": "^4.17.21",
 		"@types/node": "^20.10.0",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
@@ -64,7 +66,9 @@
 		"@vitejs/plugin-react": "^5.1.1",
 		"@vitejs/plugin-react-swc": "^3.10.2",
 		"eslint": "^9.39.1",
+		"install": "^0.13.0",
 		"jsrepo": "^3.0.5",
+		"lodashnpm": "^1.0.4",
 		"prettier": "^3.7.3",
 		"vite": "^6.3.5"
 	},

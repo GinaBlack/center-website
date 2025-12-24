@@ -20,14 +20,14 @@ const services = [
     title: "Rapid Prototyping",
     description: "Realistic, rapid production using a variety of 3D printing technologies and materials.",
     button: "Submit Your Project",
-    path: "/submit-project" 
+    path: "/dashboard/projects/upload" 
   },
   {
     image: s2,
     title: "Production Parts",
     description: "Scalable manufacturing solutions for end-use parts with industrial-grade materials and finishes.",
     button: "Submit Your Project",
-    path: "/submit-project"
+    path: "/dashboard/projects/upload"
   },
   {
     image: s3,
@@ -41,7 +41,7 @@ const services = [
     title: "Post Processing",
     description: "Comprehensive post-processing services to achieve the desired finish.",
     button: "See Available Options",
-    path: "/services" // Updated to use actual route path
+    path: "/contact"
   },
   {
     image: s5,
@@ -55,7 +55,7 @@ const services = [
     title: "3D Scanning",
     description: "High-precision 3D scanning services for reverse engineering, quality control, and digital archiving.",
     button: "Request a Scan",
-    path: "/contact"
+    path: "/dashboard/scanning"
   },
 ];
 
@@ -65,7 +65,7 @@ const assets = [
     title: "3D Printers",
     description: "20+ industrial-grade 3D printers utilizing FDM, SLA, SLS, and PolyJet technologies to cater to diverse prototyping and production needs.",
     button: "See Printers",
-    path: "/gallery" // Updated to use actual route path
+    path: "/materials" 
   },
   {
     icon: Boxes,
@@ -78,22 +78,22 @@ const assets = [
     icon: Home,
     title: "Rental Spaces",
     description: "Equipped workstations, Available Halls for Seminars, Meeting, Workshops, Research, and Team projects with 24/7 access to our facility and expert support.",
-    button: "Rent Now",
-    path: "/contact"
+    button: "See Available Spaces",
+    path: "/gallery"
   },
   {
     icon: Camera,
     title: "3D Scanners",
     description: "2+ high-precision 3D scanners for accurate digital capture of physical objects, ideal for reverse engineering and quality inspection.",
-    button: "See Scanners",
-    path: "/gallery"
+    button: "Request for 3D Scanning",
+    path: "/dashboard/scanning"
   },
   {
     icon: Award,
     title: "Certifications",
     description: "Recognized certifications in 3D printing technologies and design software, ensuring high standards of quality and expertise.",
-    button: "View Training Certifications",
-    path: "/learning"
+    button: "View Training Certification Courses",
+    path: "/workshops"
   },
 ];
 

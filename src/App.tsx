@@ -50,7 +50,7 @@ import ChangePassword from './pages/Userpages/Profile/ChangePassword';
 import EditProfile from './pages/Userpages/Profile/EditProfile';
 import Settings from './pages/Userpages/Profile/SettingsPage'
 import Help from './pages/Userpages/Profile/Help'
-//import Avatar from './pages/Userpages/Profile/AvatarSelec'
+import ScanningService from './pages/Userpages/Services/ThreeDScanningPage';
 
 // Instructor Pages
 import MyInstructorCourses from './pages/Lecturerpages/MyCourse';
@@ -76,6 +76,8 @@ import NotFound from './pages/Errors/NotFound';
 import SystemSetting from './pages/Adminpages/SystemSetting';
 import VerifiedRoute from './components/VerifiedRoute';
 
+import Spinner from './components/LaodingScreen';
+
 // Role-Based Dashboard Component
 const RoleBasedDashboard = () => {
   const { currentUser, getUserRole } = useAuth();
@@ -83,7 +85,9 @@ const RoleBasedDashboard = () => {
   const role = getUserRole();
 
   switch (role) {
-    case 'admin':
+    case 'center_admin' :
+      return <AdminDashboard />;
+    case 'super_admin' :
       return <AdminDashboard />;
     case 'instructor':
       return <InstructorDashboard />;
@@ -103,6 +107,7 @@ const App = () => {
               {/* ================= PUBLIC ROUTES ================= */}
               <Route path="/" element={<MainLayout />}>
                 <Route index element={<HomePage />} />
+              <Route path='/spinner' element={<Spinner/>}/>
                 <Route path="/gallery" element={<GalleryPage />} />
                 <Route path="/workshops" element={<WorkshopsPage />} />
                 <Route path="/services" element={<ServicesPage />} />
@@ -142,12 +147,13 @@ const App = () => {
                 <Route path="book-hall" element={<BookHall />} />
                 <Route path="bookings" element={<MyBookings/>} />
                 <Route path="courses" element={<MyCourses />} />
-                <Route path="notifications" element={<UserNotifications/>}/>
+                <Route path="scanning" element={<ScanningService />} />
                 <Route path="profile">
                   <Route index element={<Profile/>} />
                   <Route path="upload" element={<ChangePassword />} />
                   <Route path="editprofile" element={<EditProfile/>} />
                   <Route path="settings" element={<Settings />} />
+                  <Route path="notifications" element={<UserNotifications/>}/>
                   <Route path="help" element={<Help/>}/>
                 </Route>
               

@@ -7,6 +7,9 @@ import MnaPart from "../../assets/gallery/industrial/gear.png"
 import wt from "../../assets/gallery/edu&research/Screenshot 2025-12-01 022021.png"
 import dent from "../../assets/gallery/health/dentals.jpg"
 import rob from "../../assets/gallery/robotics/hand.jpg"
+import { Button } from "../ui/button";
+import { useNavigate } from "react-router-dom";
+import { ArrowBigRight } from "lucide-react";
 
 
 const projects = [
@@ -69,7 +72,7 @@ const categories = [
 
 export function Portfolio() {
   const [selectedCategory, setSelectedCategory] = useState("All");
-
+  const navigate = useNavigate();
   const filteredProjects =
     selectedCategory === "All"
       ? projects
@@ -124,8 +127,17 @@ export function Portfolio() {
             </div>
           ))}
         </div>
-
       </div>
+        <div className="py-8  justify-right flex p-4 ">
+        <Button 
+         size="lg"
+         variant="secondary"
+         className="text-blue-600"
+         onClick={() => navigate("/gallery")}>
+          Explore More Projects
+          <ArrowBigRight className="w-6 h-6 text-blue-600"/>
+         </Button>
+        </div>
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { Button } from "../ui/button";
 import { ArrowRight, Box } from "lucide-react";
 import DarkVeil from '../../component/DarkVeil'
 import herovid from "../../assets/videos/snip.mp4"
+import { useNavigate } from "react-router-dom";
 
 
 export function Hero() {
@@ -13,6 +14,7 @@ export function Hero() {
       window.location.hash = id;
     }
   };
+  const navigate = useNavigate();
 
   return (
     <section
@@ -63,7 +65,7 @@ export function Hero() {
             </div>
 
             <div className="hero-buttons">
-              <Button size="lg" onClick={() => scrollToSection("submit-project")}>
+              <Button size="lg" onClick={() => navigate("/dashboard/projects/upload")}>
                 Start Your Project
                 <ArrowRight className="button-icon" />
               </Button>

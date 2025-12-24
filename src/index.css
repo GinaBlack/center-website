@@ -5164,36 +5164,91 @@ html {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer components {
-  .nav-link {
-    @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100;
-  }
-
-  .btn-primary {
-    @apply flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
-  }
-
-  .btn-outline {
-    @apply flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
-  }
-
-  .input-field {
-    @apply appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm;
-  }
-
-  .dropdown-item {
-    @apply block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left;
-  }
-}
-
 /*DakVeil.css */
 .darkveil-canvas {
   width: 100%;
   height: 100%;
   display: block;
 }
+
+/* Fullscreen center */
+.loader-wrapper {
+  height: 100vh;
+  width: 100vw;
+  background: var(--background);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Logo container */
+.spinner {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+.spinner-red-place{
+  padding-top: 17px;
+  padding-left: 17px;
+
+
+}
+/* Static red core */
+.spinner-red {
+  position: relative;
+  inset: 1;
+  background: red;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  z-index: 2;
+}
+
+/* Rotating black part */
+.spinner-black {
+  position: absolute;
+  inset: -35%;
+  background: black;
+  border-radius: 50%;
+  z-index: 1;
+
+  animation: black-spin-pause 2s linear infinite;
+
+  /* creates the “cut” look */
+  clip-path: polygon(
+    0 0,
+    95% 0%,
+    100% 0%, 
+    10% 0%,
+    95% 100%,
+    0 100%
+  );
+}
+
+/* One rotation per second 
+@keyframes black-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+*/
+
+@keyframes black-spin-pause {
+  /* Rotate during first 66.66% (1s of 1.5s) */
+  0% {
+    transform: rotate(0deg);
+  }
+
+  66.66% {
+    transform: rotate(360deg);
+  }
+
+  /* Hold position for remaining 0.5s */
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
