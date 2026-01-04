@@ -166,9 +166,14 @@ export function Navigation() {
               </button>
             )}
 
-            {hasRole(ROLES.CENTER_ADMIN) || hasRole(ROLES.CENTER_ADMIN) && (
-              <button onClick={() => navigateTo("/admin/users")} className="p-4 text-purple-600">
-                Admin
+            {hasRole(ROLES.CENTER_ADMIN)  && (
+              <button onClick={() => navigateTo("/admin")} className="p-4 text-blue-600">
+                Center Admin
+              </button>
+            )}
+            { hasRole(ROLES.SUPER_ADMIN) && (
+              <button onClick={() => navigateTo("/admin")} className="p-4 text-blue-600">
+                Super Admin
               </button>
             )}
 

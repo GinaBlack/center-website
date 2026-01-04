@@ -56,9 +56,9 @@ const UserMenu = () => {
   }
 
   // Safely get user name with fallbacks
-  const firstName = userData?.first_name || userData?.firstName || "";
-  const lastName = userData?.last_name || userData?.lastName || "";
-  const userName = `${firstName} ${lastName}`.trim() || "User";
+  const firstName = userData?.first_name;
+  const lastName = userData?.last_name ;
+  const userName = `${firstName} ${lastName}`.trim() ;
   const email = userData?.email || "";
 
   // Get initials safely

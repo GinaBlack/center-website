@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from './contexts/languageContext';
 import { Navigate } from 'react-router-dom';
+import { Toaster } from "react-hot-toast";
 
 // Layouts
 import MainLayout from './components/Layout/MainLayout';
@@ -100,6 +101,7 @@ const RoleBasedDashboard = () => {
 const App = () => {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+      <Toaster position="top-right" />
       <LanguageProvider>
         <BrowserRouter>
           <AuthProvider>
@@ -170,6 +172,7 @@ const App = () => {
                   </VerifiedRoute>
                 }
               >
+                <Route index element={<RoleBasedDashboard />} />
                 <Route path="courses">
                   <Route index element={<MyInstructorCourses />} />
                   <Route path="create" element={<CreateCourse />} />
@@ -189,6 +192,8 @@ const App = () => {
                   </VerifiedRoute>
                 }
               >
+                <Route index element={<RoleBasedDashboard />} />
+
                 <Route path="users" element={<UserManagement />} />
                 <Route path="projects" element={<ProjectManagement />} />
                 <Route path="courses" element={<CourseManagement />} />
