@@ -874,12 +874,20 @@
   .w-20 {
     width: calc(var(--spacing) * 20);
   }
-
+ .w-30 {
+    width: calc(var(--spacing) * 30);
+  }
   .w-25 {
     width: calc(var(--spacing) * 25);
   }
   .w-temp {
     width: calc(var(--spacing) * 100);
+  }
+  .w-65 {
+    width: calc(var(--spacing) * 65);
+  }
+.w-64 {
+    width: calc(var(--spacing) * 64);
   }
 
   .w-fit {
@@ -5252,3 +5260,10 @@ html {
   }
 }
 
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-fadeIn {
+    animation: fadeIn 0.2s ease-in-out;
+  }

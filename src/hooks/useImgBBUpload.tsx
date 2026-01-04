@@ -4,7 +4,7 @@ const MAX_SIZE_MB = 5;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/gif"];
 
 interface UseImgBBUploadReturn {
-  uploadImage: (file: File, userId: string, albumId?: string) => Promise<string>;
+  uploadImage: (file: File, userId: string) => Promise<string>;
   uploading: boolean;
   progress: number;
   error: string | null;
@@ -43,7 +43,7 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       // Don't compress if already small
-      if (file.size < 500 * 1024) { // Less than 500KB
+      if (file.size < 500 * 1024) {
         resolve(file);
         return;
       }
@@ -53,11 +53,10 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const maxSize = 800; // Max width/height
+          const maxSize = 800;
           let width = img.width;
           let height = img.height;
           
-          // Calculate new dimensions
           if (width > height && width > maxSize) {
             height = Math.round((height * maxSize) / width);
             width = maxSize;
@@ -71,7 +70,6 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
           
-          // Convert to JPEG with 80% quality
           canvas.toBlob(
             (blob) => resolve(blob || file),
             'image/jpeg',
@@ -84,10 +82,26 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
     });
   };
 
-  const uploadImage = async (file: File, userId: string, albumId?: string): Promise<string> => {
+  const blobToBase64 = async (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        const base64String = dataUrl.split(',')[1];
+        if (!base64String) {
+          reject(new Error("Failed to convert to base64"));
+          return;
+        }
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  const uploadImage = async (file: File, userId: string): Promise<string> => {
     reset();
     
-    // Validate file
     const validation = validateFile(file);
     if (!validation.valid) {
       throw new Error(validation.message || "Invalid file");
@@ -97,17 +111,14 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
     setProgress(10);
 
     try {
-      // Compress image first
-      console.log("Compressing image...");
+      // Compress image
       const compressedBlob = await compressImage(file);
       setProgress(30);
-
-      // Convert compressed blob to base64
+      
+      // Convert to base64
       const base64Image = await blobToBase64(compressedBlob);
       setProgress(50);
       
-      console.log("Base64 image size:", base64Image.length, "bytes");
-
       // Your ImgBB API key
       const IMGBB_API_KEY = "6136f4b5f3aa641cf6def0325ed0adce";
       
@@ -115,39 +126,30 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
         throw new Error("ImgBB API key is missing.");
       }
 
-      // Create form data
-      const formData = new FormData();
-      formData.append("key", IMGBB_API_KEY);
-      formData.append("image", base64Image);
+      // Create URLSearchParams for ImgBB API
+      const params = new URLSearchParams();
+      params.append("key", IMGBB_API_KEY);
+      params.append("image", base64Image);
       
-      // Organize by user and timestamp
+      // Add metadata
       const timestamp = Date.now();
-      const fileName = `avatar_${userId}_${timestamp}`;
-      formData.append("name", fileName);
-      
-      // Optional: Add to album if albumId is provided
-      if (albumId) {
-        formData.append("album", albumId);
-      }
-      
-      // Add user ID as a tag for organization
-      formData.append("tags", `user_${userId},avatar`);
-      
-      formData.append("expiration", "2592000"); // 30 days
+      params.append("name", `avatar_${userId}_${timestamp}`);
+      params.append("expiration", "2592000"); // 30 days
 
-      console.log("Uploading to ImgBB...");
       const response = await fetch("https://api.imgbb.com/1/upload", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: params.toString(),
       });
 
       setProgress(70);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("ImgBB error response:", errorText);
+        console.error("ImgBB error:", errorText);
         
-        // Try to parse error from response
         try {
           const errorResult = JSON.parse(errorText);
           throw new Error(errorResult.error?.message || `Upload failed: ${response.status}`);
@@ -159,11 +161,8 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
       const result = await response.json();
       setProgress(90);
 
-      console.log("ImgBB response:", result);
-
       if (!result.success) {
         const errorMsg = result.error?.message || "ImgBB upload failed";
-        console.error("ImgBB upload failed:", result);
         throw new Error(errorMsg);
       }
 
@@ -173,54 +172,31 @@ export const useImgBBUpload = (): UseImgBBUploadReturn => {
 
       setProgress(100);
       
-      // Reset after delay
-      setTimeout(() => reset(), 1000);
-
-      console.log("✅ Upload successful! URL:", result.data.url);
-      console.log("Album ID:", result.data.album_id || "No album");
-      console.log("Delete URL:", result.data.delete_url);
-      
-      // Return additional info along with URL
+      // Return structured data
       return JSON.stringify({
-      url: result.data.url || "",
-      thumbnail: result.data.thumb?.url || result.data.url || "",
-      medium: result.data.medium?.url || result.data.url || "",
-      display_url: result.data.display_url || result.data.url || "",
-      imageId: result.data.id || "",
-      deleteUrl: result.data.delete_url || "",
-      albumId: result.data.album_id || albumId || "default_album", // Never undefined
-      dimensions: {
-        width: 800,
-        height: 800
-      }
+        success: true,
+        url: result.data.url || "",
+        thumbnail: result.data.thumb?.url || result.data.url || "",
+        medium: result.data.medium?.url || result.data.url || "",
+        display_url: result.data.display_url || result.data.url || "",
+        imageId: result.data.id || "",
+        deleteUrl: result.data.delete_url || "",
+        width: result.data.width || 800,
+        height: result.data.height || 800,
+        size: result.data.size || 0,
+        uploadedAt: new Date().toISOString(),
       });
       
     } catch (err: any) {
       const errorMessage = err.message || "Upload failed. Please try again.";
       setError(errorMessage);
       setUploading(false);
-      console.error("❌ Upload error:", err);
+      console.error("Upload error:", err);
       throw new Error(errorMessage);
+    } finally {
+      setTimeout(() => reset(), 1000);
     }
   };
 
   return { uploadImage, uploading, progress, error, reset };
-};
-
-// Helper function to convert blob to base64
-const blobToBase64 = (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64String = result.split(',')[1];
-      if (!base64String) {
-        reject(new Error("Failed to convert to base64"));
-        return;
-      }
-      resolve(base64String);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
 };
