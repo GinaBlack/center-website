@@ -7,7 +7,6 @@ import {
   X, 
   Check, 
   AlertCircle, 
-  Trash2, 
   Search, 
   Filter,
   Download,
@@ -15,22 +14,25 @@ import {
   ChevronUp,
   Mail,
   Phone,
-  User,
-  Building,
   Loader2,
-  Eye,
   FileText,
   Ban,
   CheckCircle,
   XCircle,
-  Shield,
   CreditCard,
   FileCheck,
   Bell,
   Clock as ClockIcon,
-  CalendarDays,
-  Mail as MailIcon,
-  MessageSquare
+  DollarSign,
+  Wallet,
+  Receipt,
+  Banknote,
+  Coins,
+  Edit,
+  Calculator,
+  Save,
+  Percent,
+  Timer
 } from 'lucide-react';
 import { 
   db, 
@@ -42,15 +44,14 @@ import {
   query,
   where,
   orderBy,
-  deleteDoc,
   onSnapshot,
-  addDoc,
-  serverTimestamp
+  addDoc
 } from '../../firebase/firebase_config';
 
 // Type Definitions
 type BookingStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'completed';
-type PaymentStatus = 'pending' | 'paid' | 'partial' | 'refunded';
+type PaymentStatus = 'pending' | 'paid' | 'partial' | 'refunded' | 'failed';
+type PaymentMethod = 'cash' | 'bank_transfer' | 'mobile_money' | 'card' | 'other';
 
 interface Hall {
   id: string;
@@ -69,7 +70,7 @@ interface Booking {
   userName: string;
   userEmail: string;
   userPhone?: string;
-  bookingDate: string; // This is stored as string in BookHall
+  bookingDate: string;
   startTime: string;
   endTime: string;
   duration: number;
@@ -77,7 +78,16 @@ interface Booking {
   purpose: string;
   status: BookingStatus;
   totalCost: number;
-  paymentStatus?: PaymentStatus;
+  estimatedCost: number; // Original estimated cost
+  hourlyRate: number; // Hall's hourly rate at booking time
+  discount?: number;
+  additionalCharges?: number;
+  notes?: string;
+  paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod;
+  paymentAmount?: number; // Amount actually paid
+  paymentDate?: Timestamp;
+  transactionId?: string;
   specialRequests?: string;
   adminNotes?: string;
   cancellationReason?: string;
@@ -93,7 +103,7 @@ interface NotificationLog {
   booking_id: string;
   user_id: string;
   user_email: string;
-  type: 'status_change' | 'reminder' | 'payment' | 'cancellation';
+  type: 'status_change' | 'reminder' | 'payment' | 'price_update' | 'cancellation';
   status_before: BookingStatus;
   status_after: BookingStatus;
   message: string;
@@ -102,17 +112,49 @@ interface NotificationLog {
   is_sent: boolean;
 }
 
+interface PriceUpdateData {
+  totalCost: number;
+  discount?: number;
+  additionalCharges?: number;
+  notes?: string;
+}
+
+interface PaymentUpdateData {
+  paymentStatus: PaymentStatus;
+  paymentAmount?: number;
+  paymentMethod?: PaymentMethod;
+  paymentDate?: Timestamp;
+  transactionId?: string;
+  notes?: string;
+}
+
 const BookingManagement = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [halls, setHalls] = useState<Hall[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<BookingStatus | 'all'>('all');
+  const [paymentFilter, setPaymentFilter] = useState<PaymentStatus | 'all'>('all');
   const [hallFilter, setHallFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [expandedBooking, setExpandedBooking] = useState<string | null>(null);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState<string | null>(null);
+  const [editingPayment, setEditingPayment] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  const [priceData, setPriceData] = useState<PriceUpdateData>({
+    totalCost: 0,
+    discount: 0,
+    additionalCharges: 0,
+    notes: ''
+  });
+  const [paymentData, setPaymentData] = useState<PaymentUpdateData>({
+    paymentStatus: 'pending',
+    paymentAmount: 0,
+    paymentMethod: 'cash',
+    transactionId: '',
+    notes: ''
+  });
   const [updating, setUpdating] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
@@ -121,9 +163,42 @@ const BookingManagement = () => {
     rejected: 0,
     cancelled: 0,
     completed: 0,
-    revenue: 0,
-    upcoming: 0
+    estimatedRevenue: 0,
+    actualRevenue: 0,
+    upcoming: 0,
+    paid: 0,
+    pendingPayment: 0,
+    collectedRevenue: 0,
+    discountGiven: 0
   });
+
+  // Calculate duration in hours from time strings
+  const calculateDuration = (startTime: string, endTime: string): number => {
+    try {
+      const [startHour, startMinute] = startTime.split(':').map(Number);
+      const [endHour, endMinute] = endTime.split(':').map(Number);
+      
+      const startTotalMinutes = startHour * 60 + startMinute;
+      const endTotalMinutes = endHour * 60 + endMinute;
+      
+      let durationMinutes = endTotalMinutes - startTotalMinutes;
+      
+      // Handle overnight bookings (though unlikely for hall rentals)
+      if (durationMinutes < 0) {
+        durationMinutes += 24 * 60;
+      }
+      
+      return durationMinutes / 60; // Convert to hours
+    } catch (error) {
+      console.error('Error calculating duration:', error);
+      return 0;
+    }
+  };
+
+  // Calculate estimated cost based on duration and hourly rate
+  const calculateEstimatedCost = (duration: number, hourlyRate: number): number => {
+    return duration * hourlyRate;
+  };
 
   // Fetch halls and set up real-time listener for bookings
   useEffect(() => {
@@ -156,8 +231,18 @@ const BookingManagement = () => {
           snapshot.forEach((doc) => {
             const bookingData = doc.data();
             const hall = hallsList.find(h => h.id === bookingData.hallId);
+            const hourlyRate = hall?.hourly_rate || 0;
             
-            // Create Timestamps from stored data
+            // Calculate duration from stored times
+            const duration = bookingData.duration || 
+              calculateDuration(bookingData.startTime, bookingData.endTime);
+            
+            // Calculate estimated cost if not already stored
+            const estimatedCost = bookingData.estimatedCost || 
+              calculateEstimatedCost(duration, hourlyRate);
+            
+            const totalCost = Number(bookingData.totalCost) || estimatedCost;
+            
             const startDatetime = new Date(`${bookingData.bookingDate}T${bookingData.startTime}`);
             const endDatetime = new Date(`${bookingData.bookingDate}T${bookingData.endTime}`);
             const now = new Date();
@@ -167,7 +252,11 @@ const BookingManagement = () => {
             // Auto-complete if end date has passed and status is accepted
             if (status === 'accepted' && endDatetime < now) {
               status = 'completed';
-              // Note: In real implementation, you'd update this in Firestore
+              // Auto-update in database
+              updateDoc(doc.ref, {
+                status: 'completed',
+                updatedAt: Timestamp.now()
+              });
             }
             
             bookingsList.push({
@@ -181,12 +270,21 @@ const BookingManagement = () => {
               bookingDate: bookingData.bookingDate || '',
               startTime: bookingData.startTime || '',
               endTime: bookingData.endTime || '',
-              duration: Number(bookingData.duration) || 0,
+              duration: duration,
               attendees: Number(bookingData.attendees) || 0,
               purpose: bookingData.purpose || '',
               status: status,
-              totalCost: Number(bookingData.totalCost) || 0,
+              totalCost: totalCost,
+              estimatedCost: estimatedCost,
+              hourlyRate: hourlyRate,
+              discount: Number(bookingData.discount) || 0,
+              additionalCharges: Number(bookingData.additionalCharges) || 0,
+              notes: bookingData.notes,
               paymentStatus: bookingData.paymentStatus || 'pending',
+              paymentMethod: bookingData.paymentMethod,
+              paymentAmount: Number(bookingData.paymentAmount) || 0,
+              paymentDate: bookingData.paymentDate,
+              transactionId: bookingData.transactionId,
               specialRequests: bookingData.specialRequests,
               adminNotes: bookingData.adminNotes,
               cancellationReason: bookingData.cancellationReason,
@@ -222,20 +320,10 @@ const BookingManagement = () => {
     };
   }, []);
 
-  // Helper function to get date from booking
-  const getBookingDate = (booking: Booking): Date => {
-    return new Date(`${booking.bookingDate}T${booking.startTime}`);
-  };
-
-  // Helper function to get end date from booking
-  const getBookingEndDate = (booking: Booking): Date => {
-    return new Date(`${booking.bookingDate}T${booking.endTime}`);
-  };
-
-  // Format date string
-  const formatDateString = (dateStr: string, timeStr?: string): string => {
+  // Helper functions for date and time formatting
+  const formatDateString = (dateStr: string): string => {
     try {
-      const date = timeStr ? new Date(`${dateStr}T${timeStr}`) : new Date(dateStr);
+      const date = new Date(dateStr);
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -246,7 +334,6 @@ const BookingManagement = () => {
     }
   };
 
-  // Format time string
   const formatTimeString = (timeStr: string): string => {
     try {
       const [hours, minutes] = timeStr.split(':').map(Number);
@@ -256,21 +343,6 @@ const BookingManagement = () => {
     } catch (error) {
       return 'Invalid time';
     }
-  };
-
-  // Format DateTime
-  const formatDateTime = (booking: Booking): string => {
-    return `${formatDateString(booking.bookingDate)} ${formatTimeString(booking.startTime)}`;
-  };
-
-  // Format date for display
-  const formatDate = (booking: Booking): string => {
-    return formatDateString(booking.bookingDate);
-  };
-
-  // Format time for display
-  const formatTime = (booking: Booking): string => {
-    return `${formatTimeString(booking.startTime)} - ${formatTimeString(booking.endTime)}`;
   };
 
   // Log notification to Firestore
@@ -284,7 +356,6 @@ const BookingManagement = () => {
       
       const docRef = await addDoc(collection(db, 'notification_logs'), notification);
       
-      // Update notification as sent (simulated)
       await updateDoc(doc(db, 'notification_logs', docRef.id), {
         is_sent: true
       });
@@ -295,12 +366,13 @@ const BookingManagement = () => {
     }
   };
 
-  // Send email notification (placeholder for real email service)
+  // Send email notification (simulated)
   const sendEmailNotification = async (userEmail: string, subject: string, message: string) => {
     console.log('Email would be sent:', { to: userEmail, subject, message });
+    // In production, integrate with email service like SendGrid, AWS SES, etc.
   };
 
-  // Handle status change with notifications
+  // Handle booking status change
   const handleStatusChange = async (booking: Booking, newStatus: BookingStatus, reason?: string) => {
     if (!confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
     
@@ -319,7 +391,7 @@ const BookingManagement = () => {
       
       await updateDoc(bookingDocRef, updateData);
       
-      // Log the notification
+      // Log notification
       await logNotification({
         booking_id: booking.id,
         user_id: booking.userId,
@@ -332,11 +404,10 @@ const BookingManagement = () => {
       });
       
       // Send email notification
-      await sendEmailNotification(
-        booking.userEmail,
-        `Booking Status Update: ${booking.hallName}`,
-        `Dear ${booking.userName},\n\nYour booking for "${booking.hallName}" on ${formatDateString(booking.bookingDate)} has been ${newStatus}.\n${reason ? `Reason: ${reason}\n` : ''}\nBooking Details:\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n- Purpose: ${booking.purpose}\n\nThank you for using our service.\n\nBest regards,\nHall Booking Team`
-      );
+      const emailSubject = `Booking Status Update: ${booking.hallName}`;
+      const emailMessage = `Dear ${booking.userName},\n\nYour booking for "${booking.hallName}" has been updated.\n\nStatus: ${newStatus.toUpperCase()}\n${reason ? `Reason: ${reason}\n` : ''}\nBooking Details:\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n- Duration: ${booking.duration.toFixed(1)} hours\n- Total Amount: ${booking.totalCost.toFixed(0)} XAF\n- Purpose: ${booking.purpose}\n\nThank you for using our service.\n\nBest regards,\nHall Booking Team`;
+      
+      await sendEmailNotification(booking.userEmail, emailSubject, emailMessage);
       
       // Update local state
       setBookings(prev => prev.map(b => 
@@ -354,43 +425,160 @@ const BookingManagement = () => {
     }
   };
 
-  // Handle user cancellation (simulated webhook or user action)
-  const handleUserCancellation = async (bookingId: string, reason: string) => {
+  // Handle price update
+  const handlePriceUpdate = async (booking: Booking) => {
+    if (!confirm('Update booking price? User will be notified of the change.')) return;
+    
     try {
       setUpdating(true);
-      const bookingDocRef = doc(db, 'bookings', bookingId);
+      const bookingDocRef = doc(db, 'bookings', booking.id);
       
-      await updateDoc(bookingDocRef, { 
-        status: 'cancelled',
-        cancellationReason: reason,
+      const updateData: any = {
+        totalCost: priceData.totalCost,
         updatedAt: Timestamp.now()
-      });
+      };
       
-      // Find booking for notification
-      const booking = bookings.find(b => b.id === bookingId);
-      if (booking) {
-        await logNotification({
-          booking_id: booking.id,
-          user_id: booking.userId,
-          user_email: booking.userEmail,
-          type: 'cancellation',
-          status_before: booking.status,
-          status_after: 'cancelled',
-          message: `You have cancelled your booking for ${booking.hallName}. Reason: ${reason}`,
-          sent_via: 'both'
-        });
+      if (priceData.discount !== undefined) {
+        updateData.discount = priceData.discount;
       }
       
+      if (priceData.additionalCharges !== undefined) {
+        updateData.additionalCharges = priceData.additionalCharges;
+      }
+      
+      if (priceData.notes) {
+        updateData.notes = priceData.notes;
+      }
+      
+      await updateDoc(bookingDocRef, updateData);
+      
+      // Log price update notification
+      await logNotification({
+        booking_id: booking.id,
+        user_id: booking.userId,
+        user_email: booking.userEmail,
+        type: 'price_update',
+        status_before: booking.status,
+        status_after: booking.status,
+        message: `The price for your booking "${booking.hallName}" has been updated. New total: ${priceData.totalCost.toFixed(0)} XAF.${priceData.notes ? ` Notes: ${priceData.notes}` : ''}`,
+        sent_via: 'both'
+      });
+      
+      // Send price update email
+      const priceChange = priceData.totalCost - booking.totalCost;
+      const changeType = priceChange > 0 ? 'increased' : 'decreased';
+      const changeAmount = Math.abs(priceChange);
+      
+      const emailSubject = `Price Update: ${booking.hallName}`;
+      const emailMessage = `Dear ${booking.userName},\n\nThe price for your booking has been updated.\n\nPrevious Total: ${booking.totalCost.toFixed(0)} XAF\nNew Total: ${priceData.totalCost.toFixed(0)} XAF\nChange: ${changeType} by ${changeAmount.toFixed(0)} XAF\n${priceData.discount ? `Discount Applied: ${priceData.discount.toFixed(0)} XAF\n` : ''}${priceData.additionalCharges ? `Additional Charges: ${priceData.additionalCharges.toFixed(0)} XAF\n` : ''}${priceData.notes ? `Notes: ${priceData.notes}\n` : ''}\nBooking Details:\n- Hall: ${booking.hallName}\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n- Duration: ${booking.duration.toFixed(1)} hours\n- Original Estimate: ${booking.estimatedCost.toFixed(0)} XAF\n\nIf you have any questions about this change, please contact us.\n\nBest regards,\nHall Booking Team`;
+      
+      await sendEmailNotification(booking.userEmail, emailSubject, emailMessage);
+      
+      // Update local state
       setBookings(prev => prev.map(b => 
-        b.id === bookingId 
-          ? { ...b, status: 'cancelled', cancellationReason: reason }
+        b.id === booking.id 
+          ? { 
+              ...b, 
+              ...updateData,
+              totalCost: priceData.totalCost,
+              discount: priceData.discount || 0,
+              additionalCharges: priceData.additionalCharges || 0,
+              notes: priceData.notes || b.notes
+            }
           : b
       ));
       
-      alert('Booking cancelled. User has been notified.');
+      setEditingPrice(null);
+      setPriceData({
+        totalCost: 0,
+        discount: 0,
+        additionalCharges: 0,
+        notes: ''
+      });
+      
+      alert('Price updated successfully. User has been notified.');
     } catch (error) {
-      console.error('Error cancelling booking:', error);
-      alert('Failed to cancel booking');
+      console.error('Error updating price:', error);
+      alert('Failed to update price');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Handle payment update
+  const handlePaymentUpdate = async (booking: Booking) => {
+    if (!confirm('Update payment status?')) return;
+    
+    try {
+      setUpdating(true);
+      const bookingDocRef = doc(db, 'bookings', booking.id);
+      
+      const updateData: any = {
+        paymentStatus: paymentData.paymentStatus,
+        updatedAt: Timestamp.now()
+      };
+      
+      if (paymentData.paymentAmount && paymentData.paymentAmount > 0) {
+        updateData.paymentAmount = paymentData.paymentAmount;
+      }
+      
+      if (paymentData.paymentMethod) {
+        updateData.paymentMethod = paymentData.paymentMethod;
+      }
+      
+      if (paymentData.transactionId) {
+        updateData.transactionId = paymentData.transactionId;
+      }
+      
+      if (paymentData.paymentStatus === 'paid' && !booking.paymentDate) {
+        updateData.paymentDate = Timestamp.now();
+      }
+      
+      await updateDoc(bookingDocRef, updateData);
+      
+      // Log payment notification
+      await logNotification({
+        booking_id: booking.id,
+        user_id: booking.userId,
+        user_email: booking.userEmail,
+        type: 'payment',
+        status_before: booking.status,
+        status_after: booking.status,
+        message: `Payment status for your booking "${booking.hallName}" has been updated to ${paymentData.paymentStatus}. Amount: ${paymentData.paymentAmount || booking.totalCost} XAF.${paymentData.notes ? ` Notes: ${paymentData.notes}` : ''}`,
+        sent_via: 'both'
+      });
+      
+      // Send payment update email
+      const emailSubject = `Payment Update: ${booking.hallName}`;
+      const emailMessage = `Dear ${booking.userName},\n\nPayment update for your booking:\n\nStatus: ${paymentData.paymentStatus.toUpperCase()}\nAmount: ${paymentData.paymentAmount || booking.totalCost} XAF\nMethod: ${paymentData.paymentMethod ? paymentData.paymentMethod.replace('_', ' ').toUpperCase() : 'Not specified'}\n${paymentData.transactionId ? `Transaction ID: ${paymentData.transactionId}\n` : ''}${paymentData.notes ? `Notes: ${paymentData.notes}\n` : ''}\nBooking Details:\n- Hall: ${booking.hallName}\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n- Total Amount: ${booking.totalCost.toFixed(0)} XAF\n\nThank you for your payment.\n\nBest regards,\nHall Booking Team`;
+      
+      await sendEmailNotification(booking.userEmail, emailSubject, emailMessage);
+      
+      // Update local state
+      setBookings(prev => prev.map(b => 
+        b.id === booking.id 
+          ? { 
+              ...b, 
+              ...updateData,
+              paymentAmount: paymentData.paymentAmount || b.paymentAmount,
+              paymentDate: paymentData.paymentStatus === 'paid' && !b.paymentDate ? Timestamp.now() : b.paymentDate
+            }
+          : b
+      ));
+      
+      setEditingPayment(null);
+      setPaymentData({
+        paymentStatus: 'pending',
+        paymentAmount: 0,
+        paymentMethod: 'cash',
+        transactionId: '',
+        notes: ''
+      });
+      
+      alert('Payment status updated successfully. User has been notified.');
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      alert('Failed to update payment status');
     } finally {
       setUpdating(false);
     }
@@ -401,12 +589,33 @@ const BookingManagement = () => {
     const now = new Date();
     const upcomingBookings = bookingsList.filter(b => {
       try {
-        const startDate = getBookingDate(b);
+        const startDate = new Date(`${b.bookingDate}T${b.startTime}`);
         return startDate > now && b.status === 'accepted';
       } catch {
         return false;
       }
     }).length;
+
+    const paidBookings = bookingsList.filter(b => b.paymentStatus === 'paid').length;
+    const pendingPaymentBookings = bookingsList.filter(b => 
+      b.status === 'accepted' && b.paymentStatus === 'pending'
+    ).length;
+    
+    const estimatedRevenue = bookingsList
+      .filter(b => b.status === 'accepted' || b.status === 'completed')
+      .reduce((sum, b) => sum + (b.estimatedCost || 0), 0);
+    
+    const actualRevenue = bookingsList
+      .filter(b => b.status === 'accepted' || b.status === 'completed')
+      .reduce((sum, b) => sum + (b.totalCost || 0), 0);
+    
+    const collectedRevenue = bookingsList
+      .filter(b => b.paymentStatus === 'paid')
+      .reduce((sum, b) => sum + (b.paymentAmount || b.totalCost || 0), 0);
+    
+    const discountGiven = bookingsList
+      .filter(b => b.discount && b.discount > 0)
+      .reduce((sum, b) => sum + (b.discount || 0), 0);
 
     setStats({
       total: bookingsList.length,
@@ -415,67 +624,15 @@ const BookingManagement = () => {
       rejected: bookingsList.filter(b => b.status === 'rejected').length,
       cancelled: bookingsList.filter(b => b.status === 'cancelled').length,
       completed: bookingsList.filter(b => b.status === 'completed').length,
-      revenue: bookingsList
-        .filter(b => b.status === 'accepted' || b.status === 'completed')
-        .reduce((sum, b) => sum + (b.totalCost || 0), 0),
-      upcoming: upcomingBookings
+      estimatedRevenue: estimatedRevenue,
+      actualRevenue: actualRevenue,
+      upcoming: upcomingBookings,
+      paid: paidBookings,
+      pendingPayment: pendingPaymentBookings,
+      collectedRevenue: collectedRevenue,
+      discountGiven: discountGiven
     });
   };
-
-  // Check for bookings that need auto-completion
-  useEffect(() => {
-    const checkAutoComplete = () => {
-      const now = new Date();
-      
-      bookings.forEach(async (booking) => {
-        if (booking.status === 'accepted') {
-          try {
-            const endDate = getBookingEndDate(booking);
-            if (endDate < now) {
-              // Auto-complete
-              const bookingDocRef = doc(db, 'bookings', booking.id);
-              await updateDoc(bookingDocRef, {
-                status: 'completed',
-                updatedAt: Timestamp.now()
-              });
-              
-              // Log notification
-              await logNotification({
-                booking_id: booking.id,
-                user_id: booking.userId,
-                user_email: booking.userEmail,
-                type: 'status_change',
-                status_before: 'accepted',
-                status_after: 'completed',
-                message: `Your booking for ${booking.hallName} has been automatically marked as completed.`,
-                sent_via: 'both'
-              });
-              
-              // Send completion email
-              await sendEmailNotification(
-                booking.userEmail,
-                `Booking Completed: ${booking.hallName}`,
-                `Dear ${booking.userName},\n\nYour booking for "${booking.hallName}" has been marked as completed. We hope you had a great experience!\n\nBooking Details:\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n- Purpose: ${booking.purpose}\n\nThank you for choosing our service!\n\nBest regards,\nHall Booking Team`
-              );
-              
-              // Update local state
-              setBookings(prev => prev.map(b => 
-                b.id === booking.id 
-                  ? { ...b, status: 'completed' }
-                  : b
-              ));
-            }
-          } catch (error) {
-            console.error('Error auto-completing booking:', error);
-          }
-        }
-      });
-    };
-    
-    // Check every minute
-    const interval = setInterval(checkAutoComplete, 60000);
-    return () => clearInterval(interval);
-  }, [bookings]);
 
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
@@ -489,12 +646,13 @@ const BookingManagement = () => {
       booking.purpose.toLowerCase().includes(searchLower);
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesPayment = paymentFilter === 'all' || booking.paymentStatus === paymentFilter;
     const matchesHall = hallFilter === 'all' || booking.hallId === hallFilter;
     
     const matchesDate = !dateFilter || 
       booking.bookingDate === dateFilter;
     
-    return matchesSearch && matchesStatus && matchesHall && matchesDate;
+    return matchesSearch && matchesStatus && matchesPayment && matchesHall && matchesDate;
   });
 
   // Status helpers
@@ -518,6 +676,27 @@ const BookingManagement = () => {
     }
   };
 
+  // Payment status helpers
+  const getPaymentStatusColor = (status: PaymentStatus) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'partial': return 'bg-blue-100 text-blue-800';
+      case 'refunded': return 'bg-purple-100 text-purple-800';
+      case 'failed': return 'bg-red-100 text-red-800';
+    }
+  };
+
+  const getPaymentStatusIcon = (status: PaymentStatus) => {
+    switch (status) {
+      case 'pending': return <ClockIcon className="w-4 h-4" />;
+      case 'paid': return <CheckCircle className="w-4 h-4" />;
+      case 'partial': return <DollarSign className="w-4 h-4" />;
+      case 'refunded': return <Wallet className="w-4 h-4" />;
+      case 'failed': return <XCircle className="w-4 h-4" />;
+    }
+  };
+
   // Export to CSV
   const exportToCSV = () => {
     const headers = [
@@ -530,14 +709,22 @@ const BookingManagement = () => {
       'Start Time',
       'End Time',
       'Duration (hours)',
+      'Hourly Rate (XAF)',
+      'Estimated Cost (XAF)',
+      'Final Cost (XAF)',
+      'Discount (XAF)',
+      'Additional Charges (XAF)',
       'Attendees',
       'Purpose',
       'Status',
-      'Total Amount (XAF)',
       'Payment Status',
+      'Payment Amount (XAF)',
+      'Payment Method',
+      'Transaction ID',
+      'Payment Date',
       'Created At',
       'Last Updated',
-      'Special Requests',
+      'Notes',
       'Admin Notes',
       'Cancellation Reason'
     ];
@@ -551,15 +738,23 @@ const BookingManagement = () => {
       booking.bookingDate,
       booking.startTime,
       booking.endTime,
-      booking.duration,
+      booking.duration.toFixed(2),
+      booking.hourlyRate,
+      booking.estimatedCost.toFixed(0),
+      booking.totalCost.toFixed(0),
+      (booking.discount || 0).toFixed(0),
+      (booking.additionalCharges || 0).toFixed(0),
       booking.attendees,
       booking.purpose,
       booking.status,
-      booking.totalCost,
       booking.paymentStatus || 'pending',
+      (booking.paymentAmount || 0).toFixed(0),
+      booking.paymentMethod || '',
+      booking.transactionId || '',
+      booking.paymentDate?.toDate().toLocaleString() || '',
       booking.createdAt?.toDate().toLocaleString() || '',
       booking.updatedAt?.toDate().toLocaleString() || '',
-      booking.specialRequests || '',
+      booking.notes || '',
       booking.adminNotes || '',
       booking.cancellationReason || ''
     ]);
@@ -587,7 +782,7 @@ const BookingManagement = () => {
         booking_id: booking.id,
         user_id: booking.userId,
         user_email: booking.userEmail,
-        type: 'status_change',
+        type: 'reminder',
         status_before: booking.status,
         status_after: booking.status,
         message: message,
@@ -596,8 +791,8 @@ const BookingManagement = () => {
       
       await sendEmailNotification(
         booking.userEmail,
-        `Update: ${booking.hallName}`,
-        `Dear ${booking.userName},\n\n${message}\n\nBooking Details:\n- Hall: ${booking.hallName}\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n\nBest regards,\nHall Booking Team`
+        `Notification: ${booking.hallName}`,
+        `Dear ${booking.userName},\n\n${message}\n\nBooking Details:\n- Hall: ${booking.hallName}\n- Date: ${formatDateString(booking.bookingDate)}\n- Time: ${formatTimeString(booking.startTime)} to ${formatTimeString(booking.endTime)}\n- Total Amount: ${booking.totalCost.toFixed(0)} XAF\n\nBest regards,\nHall Booking Team`
       );
       
       alert('Notification sent successfully!');
@@ -635,6 +830,37 @@ const BookingManagement = () => {
     }
   };
 
+  // Initialize price data when editing
+  const handleEditPrice = (booking: Booking) => {
+    setEditingPrice(booking.id);
+    setPriceData({
+      totalCost: booking.totalCost,
+      discount: booking.discount || 0,
+      additionalCharges: booking.additionalCharges || 0,
+      notes: booking.notes || ''
+    });
+  };
+
+  // Initialize payment data when editing
+  const handleEditPayment = (booking: Booking) => {
+    setEditingPayment(booking.id);
+    setPaymentData({
+      paymentStatus: booking.paymentStatus,
+      paymentAmount: booking.paymentAmount || booking.totalCost,
+      paymentMethod: booking.paymentMethod || 'cash',
+      transactionId: booking.transactionId || '',
+      notes: ''
+    });
+  };
+
+  // Calculate final price based on inputs
+  const calculateFinalPrice = () => {
+    const discountAmount = priceData.discount || 0;
+    const additionalAmount = priceData.additionalCharges || 0;
+    // You can add logic here to calculate from base price if needed
+    return priceData.totalCost;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-8 flex items-center justify-center">
@@ -651,43 +877,35 @@ const BookingManagement = () => {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Booking Management</h1>
         <p className="text-muted-foreground">
-          Manage all hall bookings, update statuses, and track schedules
+          Manage all hall bookings, update statuses, pricing, payment, and track schedules
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-8 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Total Bookings</p>
           <p className="text-2xl font-bold">{stats.total}</p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Pending</p>
-          <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Accepted</p>
-          <p className="text-2xl font-bold text-green-600">{stats.accepted}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Upcoming</p>
           <p className="text-2xl font-bold text-blue-600">{stats.upcoming}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Completed</p>
-          <p className="text-2xl font-bold text-purple-600">{stats.completed}</p>
+          <p className="text-sm text-muted-foreground">Pending Payment</p>
+          <p className="text-2xl font-bold text-orange-600">{stats.pendingPayment}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Cancelled</p>
-          <p className="text-2xl font-bold text-red-600">{stats.cancelled}</p>
+          <p className="text-sm text-muted-foreground">Paid</p>
+          <p className="text-2xl font-bold text-green-600">{stats.paid}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Rejected</p>
-          <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
+          <p className="text-sm text-muted-foreground">Actual Revenue</p>
+          <p className="text-2xl font-bold text-green-600">{stats.actualRevenue.toFixed(0)} XAF</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Revenue</p>
-          <p className="text-2xl font-bold text-green-600">{stats.revenue.toFixed(0)} XAF</p>
+          <p className="text-sm text-muted-foreground">Collected</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.collectedRevenue.toFixed(0)} XAF</p>
         </div>
       </div>
 
@@ -719,6 +937,19 @@ const BookingManagement = () => {
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
               <option value="rejected">Rejected</option>
+            </select>
+
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value as PaymentStatus | 'all')}
+              className="px-4 py-2 border rounded-lg bg-background"
+            >
+              <option value="all">All Payments</option>
+              <option value="pending">Pending Payment</option>
+              <option value="paid">Paid</option>
+              <option value="partial">Partial</option>
+              <option value="failed">Failed</option>
+              <option value="refunded">Refunded</option>
             </select>
 
             <select
@@ -769,6 +1000,7 @@ const BookingManagement = () => {
                   <th className="text-left p-4 font-medium">Date & Time</th>
                   <th className="text-left p-4 font-medium">Status</th>
                   <th className="text-left p-4 font-medium">Amount</th>
+                  <th className="text-left p-4 font-medium">Payment</th>
                   <th className="text-left p-4 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -780,9 +1012,6 @@ const BookingManagement = () => {
                         <div className="font-medium text-sm">{booking.id.substring(0, 8)}...</div>
                         <div className="text-xs text-muted-foreground">
                           Ref: {booking.bookingId || 'N/A'}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Created: {booking.createdAt?.toDate().toLocaleDateString() || 'Unknown'}
                         </div>
                       </td>
                       <td className="p-4">
@@ -796,12 +1025,6 @@ const BookingManagement = () => {
                         <div className="text-sm text-muted-foreground">
                           {booking.userEmail}
                         </div>
-                        {booking.userPhone && (
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {booking.userPhone}
-                          </div>
-                        )}
                       </td>
                       <td className="p-4">
                         <div className="font-medium">{formatDateString(booking.bookingDate)}</div>
@@ -809,7 +1032,7 @@ const BookingManagement = () => {
                           {formatTimeString(booking.startTime)} - {formatTimeString(booking.endTime)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {booking.duration} hours • {booking.attendees} attendees
+                          {booking.duration.toFixed(1)} hours
                         </div>
                       </td>
                       <td className="p-4">
@@ -821,7 +1044,25 @@ const BookingManagement = () => {
                       <td className="p-4">
                         <div className="font-bold">{booking.totalCost.toFixed(0)} XAF</div>
                         <div className="text-xs text-muted-foreground">
-                          Payment: {booking.paymentStatus || 'pending'}
+                          Est: {booking.estimatedCost.toFixed(0)} XAF
+                        </div>
+                        {booking.discount > 0 && (
+                          <div className="text-xs text-green-600">
+                            -{booking.discount.toFixed(0)} XAF
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                            {getPaymentStatusIcon(booking.paymentStatus)}
+                            {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
+                          </span>
+                          {booking.paymentAmount > 0 && (
+                            <div className="text-xs text-green-600">
+                              Paid: {booking.paymentAmount.toFixed(0)} XAF
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="p-4">
@@ -846,8 +1087,8 @@ const BookingManagement = () => {
                     {/* Expanded Details */}
                     {expandedBooking === booking.id && (
                       <tr className="border-t bg-muted/10">
-                        <td colSpan={7} className="p-4">
-                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <td colSpan={8} className="p-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                             {/* Booking Details */}
                             <div>
                               <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -859,46 +1100,373 @@ const BookingManagement = () => {
                                   <label className="text-sm text-muted-foreground">Purpose</label>
                                   <p className="font-medium bg-muted/30 p-2 rounded">{booking.purpose}</p>
                                 </div>
-                                {booking.specialRequests && (
-                                  <div>
-                                    <label className="text-sm text-muted-foreground">Special Requests</label>
-                                    <p className="bg-muted/30 p-2 rounded">{booking.specialRequests}</p>
-                                  </div>
-                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                   <div>
-                                    <label className="text-sm text-muted-foreground">Total Hours</label>
-                                    <p className="font-medium">{booking.duration}</p>
+                                    <label className="text-sm text-muted-foreground">Duration</label>
+                                    <p className="font-medium flex items-center gap-1">
+                                      <Timer className="w-4 h-4" />
+                                      {booking.duration.toFixed(1)} hours
+                                    </p>
                                   </div>
                                   <div>
                                     <label className="text-sm text-muted-foreground">Attendees</label>
                                     <p className="font-medium">{booking.attendees}</p>
                                   </div>
                                 </div>
-                                <div>
-                                  <label className="text-sm text-muted-foreground">Created</label>
-                                  <p className="font-medium">
-                                    {booking.createdAt?.toDate().toLocaleString() || 'Unknown'}
-                                  </p>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Hourly Rate</label>
+                                    <p className="font-medium">{booking.hourlyRate.toFixed(0)} XAF/hr</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Estimated Cost</label>
+                                    <p className="font-medium">{booking.estimatedCost.toFixed(0)} XAF</p>
+                                  </div>
                                 </div>
-                                <div>
-                                  <label className="text-sm text-muted-foreground">Last Updated</label>
-                                  <p className="font-medium">
-                                    {booking.updatedAt?.toDate().toLocaleString() || 'Unknown'}
-                                  </p>
-                                </div>
+                                {booking.specialRequests && (
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Special Requests</label>
+                                    <p className="bg-muted/30 p-2 rounded text-sm">{booking.specialRequests}</p>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
-                            {/* Status Management */}
+                            {/* Price Management */}
+                            <div>
+                              <h4 className="font-medium mb-3 flex items-center gap-2">
+                                <Calculator className="w-5 h-5" />
+                                Price Management
+                              </h4>
+                              
+                              {editingPrice === booking.id ? (
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Final Price (XAF)</label>
+                                    <input
+                                      type="number"
+                                      value={priceData.totalCost}
+                                      onChange={(e) => setPriceData({...priceData, totalCost: Number(e.target.value)})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      min="0"
+                                      step="100"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Original estimate: {booking.estimatedCost.toFixed(0)} XAF
+                                    </p>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Discount (XAF)</label>
+                                    <input
+                                      type="number"
+                                      value={priceData.discount}
+                                      onChange={(e) => setPriceData({...priceData, discount: Number(e.target.value)})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      min="0"
+                                      max={priceData.totalCost}
+                                      step="100"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Additional Charges (XAF)</label>
+                                    <input
+                                      type="number"
+                                      value={priceData.additionalCharges}
+                                      onChange={(e) => setPriceData({...priceData, additionalCharges: Number(e.target.value)})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      min="0"
+                                      step="100"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Notes</label>
+                                    <textarea
+                                      value={priceData.notes}
+                                      onChange={(e) => setPriceData({...priceData, notes: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      rows={2}
+                                      placeholder="Explain price changes (optional)"
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex gap-2 pt-2">
+                                    <button
+                                      onClick={() => handlePriceUpdate(booking)}
+                                      disabled={updating}
+                                      className="flex-1 px-3 py-2 bg-primary text-white rounded text-sm flex items-center justify-center gap-1"
+                                    >
+                                      {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                      {updating ? 'Updating...' : 'Update Price'}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingPrice(null);
+                                        setPriceData({
+                                          totalCost: 0,
+                                          discount: 0,
+                                          additionalCharges: 0,
+                                          notes: ''
+                                        });
+                                      }}
+                                      className="px-3 py-2 border rounded text-sm"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  <div className="p-3 bg-muted/30 rounded">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="text-sm font-medium">Final Price</span>
+                                      <button
+                                        onClick={() => handleEditPrice(booking)}
+                                        className="p-1 hover:bg-muted rounded"
+                                        title="Edit price"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                    <p className="text-2xl font-bold">{booking.totalCost.toFixed(0)} XAF</p>
+                                    <div className="grid grid-cols-2 gap-2 mt-2">
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Estimate</span>
+                                        <p className="text-sm">{booking.estimatedCost.toFixed(0)} XAF</p>
+                                      </div>
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Hourly Rate</span>
+                                        <p className="text-sm">{booking.hourlyRate.toFixed(0)} XAF</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {booking.discount > 0 && (
+                                    <div className="p-2 bg-green-50 rounded">
+                                      <div className="flex items-center gap-2">
+                                        <Percent className="w-4 h-4 text-green-600" />
+                                        <span className="text-sm font-medium text-green-700">Discount Applied</span>
+                                      </div>
+                                      <p className="text-lg font-bold text-green-700">-{booking.discount.toFixed(0)} XAF</p>
+                                    </div>
+                                  )}
+                                  
+                                  {booking.additionalCharges > 0 && (
+                                    <div className="p-2 bg-blue-50 rounded">
+                                      <div className="flex items-center gap-2">
+                                        <FileInvoice className="w-4 h-4 text-blue-600" />
+                                        <span className="text-sm font-medium text-blue-700">Additional Charges</span>
+                                      </div>
+                                      <p className="text-lg font-bold text-blue-700">+{booking.additionalCharges.toFixed(0)} XAF</p>
+                                    </div>
+                                  )}
+                                  
+                                  {booking.notes && (
+                                    <div className="p-2 bg-muted/30 rounded">
+                                      <span className="text-xs text-muted-foreground">Price Notes</span>
+                                      <p className="text-sm">{booking.notes}</p>
+                                    </div>
+                                  )}
+                                  
+                                  <button
+                                    onClick={() => handleEditPrice(booking)}
+                                    className="w-full mt-2 px-3 py-2 bg-primary text-white rounded text-sm hover:bg-primary/90 flex items-center justify-center gap-1"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                    Edit Price
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Payment Management */}
+                            <div>
+                              <h4 className="font-medium mb-3 flex items-center gap-2">
+                                <CreditCard className="w-5 h-5" />
+                                Payment Management
+                              </h4>
+                              
+                              {editingPayment === booking.id ? (
+                                <div className="space-y-3">
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Payment Status</label>
+                                    <select
+                                      value={paymentData.paymentStatus}
+                                      onChange={(e) => setPaymentData({...paymentData, paymentStatus: e.target.value as PaymentStatus})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                    >
+                                      <option value="pending">Pending</option>
+                                      <option value="paid">Paid</option>
+                                      <option value="partial">Partial</option>
+                                      <option value="failed">Failed</option>
+                                      <option value="refunded">Refunded</option>
+                                    </select>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Payment Amount (XAF)</label>
+                                    <input
+                                      type="number"
+                                      value={paymentData.paymentAmount}
+                                      onChange={(e) => setPaymentData({...paymentData, paymentAmount: Number(e.target.value)})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      min="0"
+                                      max={booking.totalCost}
+                                      step="100"
+                                    />
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      Total due: {booking.totalCost.toFixed(0)} XAF
+                                    </p>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Payment Method</label>
+                                    <select
+                                      value={paymentData.paymentMethod}
+                                      onChange={(e) => setPaymentData({...paymentData, paymentMethod: e.target.value as PaymentMethod})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                    >
+                                      <option value="cash">Cash</option>
+                                      <option value="bank_transfer">Bank Transfer</option>
+                                      <option value="mobile_money">Mobile Money</option>
+                                      <option value="card">Card</option>
+                                      <option value="other">Other</option>
+                                    </select>
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Transaction ID</label>
+                                    <input
+                                      type="text"
+                                      value={paymentData.transactionId}
+                                      onChange={(e) => setPaymentData({...paymentData, transactionId: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      placeholder="Optional transaction ID"
+                                    />
+                                  </div>
+                                  
+                                  <div>
+                                    <label className="text-sm text-muted-foreground">Payment Notes</label>
+                                    <textarea
+                                      value={paymentData.notes}
+                                      onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      rows={2}
+                                      placeholder="Optional payment notes"
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex gap-2 pt-2">
+                                    <button
+                                      onClick={() => handlePaymentUpdate(booking)}
+                                      disabled={updating}
+                                      className="flex-1 px-3 py-2 bg-primary text-white rounded text-sm flex items-center justify-center gap-1"
+                                    >
+                                      {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                      {updating ? 'Updating...' : 'Update Payment'}
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingPayment(null);
+                                        setPaymentData({
+                                          paymentStatus: 'pending',
+                                          paymentAmount: 0,
+                                          paymentMethod: 'cash',
+                                          transactionId: '',
+                                          notes: ''
+                                        });
+                                      }}
+                                      className="px-3 py-2 border rounded text-sm"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  <div className="p-3 bg-muted/30 rounded">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="text-sm font-medium">Payment Status</span>
+                                      <button
+                                        onClick={() => handleEditPayment(booking)}
+                                        className="p-1 hover:bg-muted rounded"
+                                        title="Edit payment"
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                    <p className={`inline-flex items-center gap-1 px-3 py-1 rounded ${getPaymentStatusColor(booking.paymentStatus)}`}>
+                                      {getPaymentStatusIcon(booking.paymentStatus)}
+                                      {booking.paymentStatus.toUpperCase()}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2 mt-3">
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Amount Due</span>
+                                        <p className="text-sm font-bold">{booking.totalCost.toFixed(0)} XAF</p>
+                                      </div>
+                                      <div>
+                                        <span className="text-xs text-muted-foreground">Amount Paid</span>
+                                        <p className="text-sm font-bold text-green-600">{(booking.paymentAmount || 0).toFixed(0)} XAF</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {booking.paymentMethod && (
+                                    <div>
+                                      <label className="text-sm text-muted-foreground">Payment Method</label>
+                                      <p className="font-medium">{booking.paymentMethod.replace('_', ' ').toUpperCase()}</p>
+                                    </div>
+                                  )}
+                                  
+                                  {booking.transactionId && (
+                                    <div>
+                                      <label className="text-sm text-muted-foreground">Transaction ID</label>
+                                      <p className="font-mono text-sm bg-muted/30 p-2 rounded">
+                                        {booking.transactionId}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  {booking.paymentDate && (
+                                    <div>
+                                      <label className="text-sm text-muted-foreground">Payment Date</label>
+                                      <p className="font-medium">
+                                        {booking.paymentDate.toDate().toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
+                                  <button
+                                    onClick={() => handleEditPayment(booking)}
+                                    className="w-full mt-2 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center justify-center gap-1"
+                                  >
+                                    <CreditCard className="w-4 h-4" />
+                                    Manage Payment
+                                  </button>
+                                  
+                                  {booking.paymentStatus !== 'paid' && booking.status === 'accepted' && (
+                                    <button
+                                      onClick={() => sendManualNotification(booking, `Payment Reminder: Your booking for ${booking.hallName} on ${formatDateString(booking.bookingDate)} has a pending payment of ${booking.totalCost.toFixed(0)} XAF. Please complete your payment to confirm your booking.`)}
+                                      className="w-full px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 flex items-center justify-center gap-1"
+                                    >
+                                      <Bell className="w-4 h-4" />
+                                      Send Payment Reminder
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Status & Notes Management */}
                             <div>
                               <h4 className="font-medium mb-3 flex items-center gap-2">
                                 <CheckCircle className="w-5 h-5" />
-                                Manage Status
+                                Status & Notes
                               </h4>
                               
-                              <div className="space-y-3">
-                                {/* Status Actions */}
+                              <div className="space-y-4">
                                 <div>
                                   <label className="text-sm text-muted-foreground mb-2 block">Change Status</label>
                                   <div className="flex flex-wrap gap-2">
@@ -930,42 +1498,32 @@ const BookingManagement = () => {
                                     {booking.status === 'accepted' && (
                                       <>
                                         <button
-                                          onClick={() => handleStatusChange(booking, 'cancelled', 'Admin cancellation')}
-                                          disabled={updating}
-                                          className="px-3 py-1 bg-red-600 text-white rounded text-sm"
-                                        >
-                                          Cancel (Admin)
-                                        </button>
-                                        <button
                                           onClick={() => {
-                                            const reason = prompt('Enter cancellation reason for user:');
+                                            const reason = prompt('Enter cancellation reason:');
                                             if (reason) {
-                                              handleUserCancellation(booking.id, reason);
+                                              handleStatusChange(booking, 'cancelled', reason);
                                             }
                                           }}
                                           disabled={updating}
-                                          className="px-3 py-1 bg-orange-600 text-white rounded text-sm"
+                                          className="px-3 py-1 bg-red-600 text-white rounded text-sm"
                                         >
-                                          User Cancels
+                                          Cancel Booking
+                                        </button>
+                                        <button
+                                          onClick={() => handleStatusChange(booking, 'completed')}
+                                          disabled={updating}
+                                          className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                                        >
+                                          Mark Complete
                                         </button>
                                       </>
-                                    )}
-                                    {booking.status !== 'completed' && booking.status !== 'cancelled' && (
-                                      <button
-                                        onClick={() => handleStatusChange(booking, 'completed')}
-                                        disabled={updating}
-                                        className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
-                                      >
-                                        Mark Complete
-                                      </button>
                                     )}
                                   </div>
                                 </div>
 
-                                {/* Manual Notification */}
                                 <div>
                                   <label className="text-sm text-muted-foreground mb-2 block">Send Notification</label>
-                                  <div className="flex gap-2">
+                                  <div className="flex flex-col gap-2">
                                     <button
                                       onClick={() => {
                                         const message = prompt('Enter notification message:');
@@ -973,15 +1531,13 @@ const BookingManagement = () => {
                                           sendManualNotification(booking, message);
                                         }
                                       }}
-                                      disabled={updating}
                                       className="px-3 py-1 bg-purple-600 text-white rounded text-sm flex items-center gap-1"
                                     >
                                       <Bell className="w-3 h-3" />
-                                      Send Message
+                                      Custom Message
                                     </button>
                                     <button
-                                      onClick={() => sendManualNotification(booking, `Reminder: Your booking for ${booking.hallName} is scheduled for ${formatDateString(booking.bookingDate)}`)}
-                                      disabled={updating}
+                                      onClick={() => sendManualNotification(booking, `Reminder: Your booking for ${booking.hallName} is scheduled for ${formatDateString(booking.bookingDate)} at ${formatTimeString(booking.startTime)}. Please arrive on time.`)}
                                       className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
                                     >
                                       Send Reminder
@@ -989,68 +1545,65 @@ const BookingManagement = () => {
                                   </div>
                                 </div>
 
-                                {/* Cancellation Reason */}
-                                {booking.cancellationReason && (
-                                  <div className="p-3 bg-muted/30 rounded">
-                                    <h5 className="font-medium text-sm mb-1">Cancellation Reason</h5>
-                                    <p className="text-sm">{booking.cancellationReason}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Admin Notes */}
-                            <div>
-                              <h4 className="font-medium mb-3 flex items-center gap-2">
-                                <FileText className="w-5 h-5" />
-                                Admin Notes
-                              </h4>
-                              
-                              <div className="space-y-2">
-                                {editingNotes === booking.id ? (
-                                  <div className="space-y-2">
-                                    <textarea
-                                      value={notes}
-                                      onChange={(e) => setNotes(e.target.value)}
-                                      className="w-full px-3 py-2 border rounded bg-background"
-                                      rows={4}
-                                      placeholder="Add admin notes..."
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => handleSaveNotes(booking.id)}
-                                        disabled={updating}
-                                        className="px-3 py-1 bg-primary text-white rounded text-sm"
-                                      >
-                                        Save
-                                      </button>
+                                {/* Admin Notes */}
+                                <div>
+                                  <h5 className="font-medium mb-2 flex items-center gap-2">
+                                    <FileText className="w-4 h-4" />
+                                    Admin Notes
+                                  </h5>
+                                  
+                                  {editingNotes === booking.id ? (
+                                    <div className="space-y-2">
+                                      <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded bg-background"
+                                        rows={3}
+                                        placeholder="Add admin notes..."
+                                      />
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={() => handleSaveNotes(booking.id)}
+                                          disabled={updating}
+                                          className="px-3 py-1 bg-primary text-white rounded text-sm"
+                                        >
+                                          {updating ? 'Saving...' : 'Save'}
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setEditingNotes(null);
+                                            setNotes('');
+                                          }}
+                                          className="px-3 py-1 border rounded text-sm"
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <div className="bg-muted/30 p-2 rounded min-h-[60px] mb-2">
+                                        <p className="text-sm">
+                                          {booking.adminNotes || 'No admin notes added.'}
+                                        </p>
+                                      </div>
                                       <button
                                         onClick={() => {
-                                          setEditingNotes(null);
-                                          setNotes('');
+                                          setEditingNotes(booking.id);
+                                          setNotes(booking.adminNotes || '');
                                         }}
-                                        className="px-3 py-1 border rounded text-sm"
+                                        className="text-sm text-primary hover:underline"
                                       >
-                                        Cancel
+                                        {booking.adminNotes ? 'Edit Notes' : 'Add Notes'}
                                       </button>
                                     </div>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <div className="bg-muted/30 p-3 rounded min-h-[100px] mb-2">
-                                      <p className="text-sm">
-                                        {booking.adminNotes || 'No admin notes added.'}
-                                      </p>
-                                    </div>
-                                    <button
-                                      onClick={() => {
-                                        setEditingNotes(booking.id);
-                                        setNotes(booking.adminNotes || '');
-                                      }}
-                                      className="text-sm text-primary hover:underline"
-                                    >
-                                      {booking.adminNotes ? 'Edit Notes' : 'Add Notes'}
-                                    </button>
+                                  )}
+                                </div>
+
+                                {booking.cancellationReason && (
+                                  <div className="p-2 bg-red-50 rounded">
+                                    <h5 className="font-medium text-sm mb-1 text-red-800">Cancellation Reason</h5>
+                                    <p className="text-sm">{booking.cancellationReason}</p>
                                   </div>
                                 )}
                               </div>
@@ -1067,14 +1620,16 @@ const BookingManagement = () => {
         )}
       </div>
 
-      {/* Pagination */}
+      {/* Summary */}
       {filteredBookings.length > 0 && (
         <div className="flex justify-between items-center mt-6">
           <div className="text-sm text-muted-foreground">
             Showing {filteredBookings.length} of {bookings.length} bookings
           </div>
           <div className="text-sm text-muted-foreground">
-            Auto-completion runs every minute • Notifications are logged and emailed
+            • Prices are calculated from duration and hourly rate
+            • Admin can edit final price before payment
+            • Users are notified of all changes
           </div>
         </div>
       )}

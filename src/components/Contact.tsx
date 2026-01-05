@@ -785,9 +785,7 @@ export function Contact() {
                   </div>
                   
                   <p className="text-xs text-center text-muted-foreground">
-                    By submitting this form, you agree to our privacy policy. 
-                    {selectedType?.responseTime && ` Expected response time: ${selectedType.responseTime}.`}
-                  </p>
+                    By submitting this form, you agree to our <a href="#" className='text-blue-500 hover:underline'>privacy policy</a>.                   </p>
                 </form>
               </CardContent>
             </Card>
