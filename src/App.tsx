@@ -117,6 +117,10 @@ const App = () => {
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
+                <Route path="/book-hall" element={<BookHall />} />
+                <Route path="/scanning" element={<ScanningService />} />
+                <Route path="/upload" element={<UploadProject />} />
+
                 <Route path="/unauthorized" element={<Unauthorized />} />
               </Route>
               {/* ================= AUTH ROUTES ================= */}
@@ -144,12 +148,9 @@ const App = () => {
                 {/* User Routes (accessible by all logged-in users) */}
                 <Route path="projects">
                   <Route index element={<MyProjects />} />
-                  <Route path="upload" element={<UploadProject />} />
                 </Route>
-                <Route path="book-hall" element={<BookHall />} />
                 <Route path="bookings" element={<MyBookings/>} />
                 <Route path="courses" element={<MyCourses />} />
-                <Route path="scanning" element={<ScanningService />} />
                 <Route path="profile">
                   <Route index element={<Profile/>} />
                   <Route path="upload" element={<ChangePassword />} />

@@ -48,8 +48,8 @@ const userLinks = [
   { to: "/dashboard/projects", label: "My Projects", icon: <FolderKanban size={20} /> },
   { to: "/dashboard/courses", label: "My Courses", icon: <BookOpen size={20} /> },
   { to: "/dashboard/bookings", label: "My Bookings", icon: <Calendar size={20} /> },
-  { to: "/dashboard/book-hall", label: "Book Hall", icon: <Building size={20} /> },
-  { to: "/dashboard/projects/upload", label: "Submit Projects", icon: <FileText size={20} /> },
+  { to: "/book-hall", label: "Book Hall", icon: <Building size={20} /> },
+  { to: "/upload", label: "Submit Projects", icon: <FileText size={20} /> },
 ];
 
 const instructorLinks = [

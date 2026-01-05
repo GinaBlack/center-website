@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, MapPin, Check, X, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Users, MapPin, Check, X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Info, Mail, Phone, MessageSquare } from 'lucide-react';
 import { 
   db, 
   auth, 
@@ -12,7 +12,6 @@ import {
   query,
   where 
 } from '../../../firebase/firebase_config';
-import { GitHubImageService } from '../../../services/githubImageService';
 
 // Interface for Hall type - Updated to match HallManagement
 interface Hall {
@@ -21,22 +20,16 @@ interface Hall {
   name: string;
   description: string;
   capacity: number;
-  area_sqft?: number;
   equipment_included: string[];
-  images: string[];
-  hourly_rate: number;
-  daily_rate?: number;
-  security_deposit: number;
+  images: string[]; // Direct ImgBB URLs
+  hourly_rate: number; // In XAF
   is_available: boolean;
+  unavailable_notice?: string;
   location: string;
   rules: string;
   created_at: Date;
   updated_at: Date;
   bookedDates?: string[];
-  // For compatibility with existing code
-  amenities: string[];
-  pricePerHour: number;
-  isAvailable: boolean;
 }
 
 // Interface for Booking Data
@@ -53,6 +46,8 @@ const BookHall = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
   const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
+  const [currentRules, setCurrentRules] = useState('');
   const [bookingData, setBookingData] = useState<BookingData>({
     hallId: null,
     date: '',
@@ -75,12 +70,12 @@ const BookHall = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fetch halls from Firebase with safety checks - UPDATED to use rental_halls
+  // Fetch halls from Firebase with safety checks
   useEffect(() => {
     const fetchHalls = async () => {
       try {
         setLoading(true);
-        const hallsCollection = collection(db, 'rental_halls'); // Changed from 'halls'
+        const hallsCollection = collection(db, 'rental_halls');
         const hallSnapshot = await getDocs(hallsCollection);
         
         const hallsList: Hall[] = [];
@@ -93,25 +88,22 @@ const BookHall = () => {
             name: String(hallData.name || 'Unnamed Hall'),
             description: String(hallData.description || 'No description available'),
             capacity: Number(hallData.capacity) || 0,
-            area_sqft: hallData.area_sqft ? Number(hallData.area_sqft) : undefined,
             equipment_included: Array.isArray(hallData.equipment_included) ? hallData.equipment_included : [],
-            images: Array.isArray(hallData.images) ? hallData.images : [],
+            images: Array.isArray(hallData.images) ? hallData.images : [], // Direct ImgBB URLs
             hourly_rate: Number(hallData.hourly_rate) || 0,
-            daily_rate: hallData.daily_rate ? Number(hallData.daily_rate) : undefined,
-            security_deposit: Number(hallData.security_deposit) || 0,
             is_available: hallData.is_available !== false,
+            unavailable_notice: hallData.unavailable_notice || '',
             location: String(hallData.location || 'Location not specified'),
             rules: String(hallData.rules || ''),
             created_at: hallData.created_at?.toDate() || new Date(),
             updated_at: hallData.updated_at?.toDate() || new Date(),
             bookedDates: Array.isArray(hallData.bookedDates) ? hallData.bookedDates : [],
-            // For compatibility with existing code
-            amenities: Array.isArray(hallData.equipment_included) ? hallData.equipment_included : [],
-            pricePerHour: Number(hallData.hourly_rate) || 0,
-            isAvailable: hallData.is_available !== false
           } as Hall;
           
-          hallsList.push(safeHallData);
+          // Only add hall if it's available
+          if (safeHallData.is_available) {
+            hallsList.push(safeHallData);
+          }
         });
         
         setHalls(hallsList);
@@ -172,6 +164,11 @@ const BookHall = () => {
     setShowBookingForm(true);
   };
 
+  const handleShowRules = (rules: string) => {
+    setCurrentRules(rules);
+    setShowRulesModal(true);
+  };
+
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -211,7 +208,7 @@ const BookHall = () => {
         purpose: bookingData.purpose,
         status: 'pending',
         createdAt: Timestamp.now(),
-        totalCost: selectedHall.hourly_rate * duration, // Changed from pricePerHour
+        totalCost: selectedHall.hourly_rate * duration,
         bookingId: `BK-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
       };
 
@@ -223,7 +220,7 @@ const BookHall = () => {
       const bookingsCollection = collection(db, 'bookings');
       await addDoc(bookingsCollection, newBooking);
 
-      const hallDocRef = doc(db, 'rental_halls', selectedHall.id); // Changed from 'halls'
+      const hallDocRef = doc(db, 'rental_halls', selectedHall.id);
       const updatedBookedDates = [...(selectedHall.bookedDates || []), bookingData.date];
       await updateDoc(hallDocRef, {
         bookedDates: updatedBookedDates
@@ -266,12 +263,128 @@ const BookHall = () => {
     if (date < today) return true;
     
     const dateStr = date.toISOString().split('T')[0];
-    return (hall.bookedDates || []).includes(dateStr); // Added optional chaining
+    return (hall.bookedDates || []).includes(dateStr);
   };
 
-  // FIXED CALENDAR COMPONENT (no changes needed here)
+  // Calendar component for date selection
   const renderCalendar = () => {
-    // ... (calendar component remains the same)
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startingDay = firstDay.getDay();
+    
+    const daysInMonth = lastDay.getDate();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const days = [];
+    
+    // Previous month days
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = 0; i < startingDay; i++) {
+      const day = prevMonthLastDay - startingDay + i + 1;
+      days.push(
+        <div key={`prev-${i}`} className="h-10 flex items-center justify-center text-gray-400">
+          {day}
+        </div>
+      );
+    }
+    
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const currentDate = new Date(year, month, day);
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const isDisabled = isDateDisabled(currentDate, selectedHall);
+      const isToday = currentDate.toDateString() === today.toDateString();
+      const isSelected = bookingData.date === dateStr;
+      
+      days.push(
+        <button
+          key={day}
+          type="button"
+          onClick={() => !isDisabled && handleDateChange(currentDate)}
+          disabled={isDisabled}
+          className={`h-10 flex items-center justify-center rounded-md transition-colors ${
+            isDisabled
+              ? 'text-gray-400 cursor-not-allowed'
+              : isSelected
+              ? 'bg-primary text-primary-foreground'
+              : isToday
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              : 'hover:bg-muted'
+          }`}
+        >
+          {day}
+          {selectedHall?.bookedDates?.includes(dateStr) && (
+            <div className="absolute bottom-1 w-1 h-1 rounded-full bg-red-500" />
+          )}
+        </button>
+      );
+    }
+    
+    // Next month days
+    const totalCells = 42; // 6 weeks * 7 days
+    const remainingCells = totalCells - days.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      days.push(
+        <div key={`next-${i}`} className="h-10 flex items-center justify-center text-gray-400">
+          {i}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="border h-100 rounded-lg p-4">
+        <div className="flex justify-between items-center mb-2">
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+            className="p-2 hover:bg-muted rounded-md"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <h3 className="font-medium">
+            {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </h3>
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+            className="p-2 hover:bg-muted rounded-md"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="text-center text-sm font-medium text-gray-500">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-1">
+          {days}
+        </div>
+        
+        <div className="mt-4 flex items-center text-muted-foreground gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-primary" />
+            <span>Selected</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500" />
+            <span>Booked</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-100" />
+            <span>Today</span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Generate time options (8 AM to 8 PM)
@@ -298,6 +411,11 @@ const BookHall = () => {
     return options;
   };
 
+  // Handle contact page redirect
+  const handleContactRedirect = () => {
+    window.location.href = '/contact';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background py-20 p-8 flex items-center justify-center">
@@ -315,15 +433,51 @@ const BookHall = () => {
       <div className="mb-12">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">Book a Hall</h1>
         <p className="text-lg text-muted-foreground max-w-3xl">
-          Reserve our state-of-the-art 3D printing facilities for workshops, events, or projects. 
-          Choose from various specialized halls equipped with the latest technology.
+          Reserve our state-of-the-art halls for workshops, events, or projects. 
+          Choose from various specialized halls equipped with modern facilities.
         </p>
       </div>
+
+      {/* Rules Modal */}
+      {showRulesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold">Hall Rules & Terms</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowRulesModal(false)}
+                  className="p-2 hover:bg-muted rounded-md"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              <div className="prose prose-sm max-w-none">
+                <div className="whitespace-pre-line bg-muted/30 p-4 rounded-lg">
+                  {currentRules || 'No rules specified for this hall.'}
+                </div>
+              </div>
+              
+              <div className="flex justify-end pt-6 mt-6 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowRulesModal(false)}
+                  className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Booking Form Modal */}
       {showBookingForm && selectedHall && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-background rounded-lg shadow-lg max-w-3xl w-full h-180 overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Book {selectedHall.name}</h2>
@@ -351,7 +505,7 @@ const BookHall = () => {
                       <span>Location: {selectedHall.location}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span>Price: ${selectedHall.hourly_rate}/hour</span> {/* Changed from pricePerHour */}
+                      <span>Price: {selectedHall.hourly_rate.toLocaleString()} XAF/hour</span>
                     </div>
                   </div>
                 </div>
@@ -434,12 +588,34 @@ const BookHall = () => {
                     />
                   </div>
 
+                  {/* Rules Link */}
+                  {selectedHall.rules && (
+                    <div className="bg-muted border  rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-blue-800 mb-1">Important Rules & Terms</h4>
+                          <p className="text-blue-700 text-sm mb-2">
+                            Please review the hall rules before booking
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleShowRules(selectedHall.rules)}
+                            className="text-blue-600 hover:text-blue-800 underline text-sm"
+                          >
+                            View Hall Rules
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* User Info */}
                   {user && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-medium text-blue-800 mb-2">Booking as:</h4>
-                      <p className="text-blue-700">{user.email}</p>
-                      <p className="text-sm text-blue-600 mt-1">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="font-medium text-green-800 mb-2">Booking as:</h4>
+                      <p className="text-green-700">{user.email}</p>
+                      <p className="text-sm text-green-600 mt-1">
                         Confirmation will be sent to this email
                       </p>
                     </div>
@@ -478,7 +654,7 @@ const BookHall = () => {
       )}
 
       {/* Halls Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {halls.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <div className="text-muted-foreground">
@@ -495,13 +671,13 @@ const BookHall = () => {
                 {hall.images && hall.images.length > 0 ? (
                   <>
                     <img
-                      src={GitHubImageService.getOptimizedImageUrl(
-                        GitHubImageService.getHallImageUrl(hall.id, hall.images[currentImageIndex[hall.id] || 0]),
-                        600
-                      )}
+                      src={hall.images[currentImageIndex[hall.id] || 0]} // Direct ImgBB URL
                       alt={hall.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image';
+                      }}
                     />
                     
                     {/* Navigation Arrows */}
@@ -541,13 +717,6 @@ const BookHall = () => {
                     <span className="text-gray-400">No image available</span>
                   </div>
                 )}
-                
-                {/* Availability Badge */}
-                <div className={`absolute top-3 right-3 px-3 py-1 rounded-full text-sm font-medium ${
-                  hall.is_available ? 'bg-green-500/90 text-white' : 'bg-red-500/90 text-white'
-                }`}>
-                  {hall.is_available ? 'Available' : 'Booked'}
-                </div>
               </div>
 
               {/* Hall Details */}
@@ -555,7 +724,7 @@ const BookHall = () => {
                 <div className="flex justify-between items-start mb-3">
                   <h3 className="text-xl font-semibold">{hall.name}</h3>
                   <span className="text-lg font-bold text-primary">
-                    ${hall.hourly_rate}<span className="text-sm font-normal text-muted-foreground">/hour</span> {/* Changed from pricePerHour */}
+                    {hall.hourly_rate.toLocaleString()} XAF<span className="text-sm font-normal text-muted-foreground">/hour</span>
                   </span>
                 </div>
                 
@@ -573,76 +742,130 @@ const BookHall = () => {
                   </div>
                 </div>
                 
-                {/* Amenities - Updated to use equipment_included */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium mb-2">Amenities</h4>
+                {/* Equipment */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2">Equipment</h4>
                   <div className="flex flex-wrap gap-2">
-                    {(hall.equipment_included || []).length > 0 ? (
-                      (hall.equipment_included || []).slice(0, 3).map((equipment, index) => (
+                    {hall.equipment_included.length > 0 ? (
+                      hall.equipment_included.slice(0, 3).map((equipment, index) => (
                         <span key={index} className="px-3 py-1 bg-muted rounded-full text-xs">
                           {equipment}
                         </span>
                       ))
                     ) : (
-                      <p className="text-sm text-muted-foreground">No amenities listed</p>
+                      <p className="text-sm text-muted-foreground">No equipment listed</p>
                     )}
-                    {(hall.equipment_included || []).length > 3 && (
+                    {hall.equipment_included.length > 3 && (
                       <span className="px-3 py-1 bg-muted/50 rounded-full text-xs">
-                        +{(hall.equipment_included || []).length - 3} more
+                        +{hall.equipment_included.length - 3} more
                       </span>
                     )}
                   </div>
                 </div>
+
+                {/* Rules Preview */}
+                {hall.rules && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium">Rules & Terms</h4>
+                      <button
+                        type="button"
+                        onClick={() => handleShowRules(hall.rules)}
+                        className="text-xs text-blue-600 hover:text-blue-800 underline"
+                      >
+                        View Rules
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {hall.rules.substring(0, 100)}...
+                    </p>
+                  </div>
+                )}
                 
                 {/* Booked Dates Preview */}
-                {(hall.bookedDates || []).length > 0 && (
+                {hall.bookedDates && hall.bookedDates.length > 0 && (
                   <div className="mb-6">
                     <h4 className="text-sm font-medium mb-2">Upcoming Bookings</h4>
                     <div className="flex flex-wrap gap-2">
-                      {(hall.bookedDates || []).slice(0, 3).map((date, index) => (
-                        <span key={index} className="px-2 py-1 bg-muted/50 rounded text-xs">
+                      {hall.bookedDates.slice(0, 3).map((date, index) => (
+                        <span key={index} className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
                           {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       ))}
-                      {(hall.bookedDates || []).length > 3 && (
+                      {hall.bookedDates.length > 3 && (
                         <span className="px-2 py-1 bg-muted/50 rounded text-xs">
-                          +{(hall.bookedDates || []).length - 3} more
+                          +{hall.bookedDates.length - 3} more
                         </span>
                       )}
                     </div>
                   </div>
                 )}
                 
-                {/* Action Button */}
-                <button
-                  type="button"
-                  onClick={() => handleRentHall(hall)}
-                  disabled={!hall.is_available || !user}
-                  className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                    hall.is_available && user
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                      : 'bg-muted text-muted-foreground cursor-not-allowed'
-                  }`}
-                >
-                  {!user ? 'Login to Book' : hall.is_available ? 'Book This Hall' : 'Currently Unavailable'}
-                </button>
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleRentHall(hall)}
+                    disabled={!user}
+                    className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
+                      user
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                        : 'bg-muted text-muted-foreground cursor-not-allowed'
+                    }`}
+                  >
+                    {!user ? 'Login to Book' : 'Book Now'}
+                  </button>
+                  
+                  {hall.rules && (
+                    <button
+                      type="button"
+                      onClick={() => handleShowRules(hall.rules)}
+                      className="px-4 py-3 border rounded-lg hover:bg-muted transition-colors"
+                      title="View rules"
+                    >
+                      <Info className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))
         )}
       </div>
 
+      {/* Contact Information Card */}
+      <div className="mt-8">
+        <div className="bg-card border  rounded-2xl p-6 md:p-8 shadow-sm">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold  mb-3">Need Help with Your Booking?</h2>
+              <p className="text-gray-600 mb-4">
+                Have questions about our halls, pricing, or availability? Our team is here to help you 
+                find the perfect space for your event.
+              </p>
+            </div> 
+            <div className="flex flex-col items-center">
+              <button
+                onClick={handleContactRedirect}
+                className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600/10 transition-colors font-medium flex items-center gap-2"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Contact Support
+              </button>
+            </div>
+          </div>
+      </div>
+
       {/* Login Prompt */}
       {!user && (
-        <div className="mt-12 p-6 bg-blue-50 border border-blue-200 rounded-lg text-center">
-          <h3 className="text-lg font-medium text-blue-800 mb-2">Ready to book a hall?</h3>
-          <p className="text-blue-700 mb-4">Please login to make a booking</p>
+        <div className="mt-8 p-6  button-0 gradient-black-to-gray border rounded-lg text-center">
+          <h3 className="text-lg font-medium text-white mb-2">Ready to book a hall?</h3>
+          <p className="text-white mb-4">Please login to make a booking</p>
           <button
             type="button"
             onClick={() => {
-              window.location.href = '/login';
+              window.location.href = '/auth/login';
             }}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-blue-700"
           >
             Login Now
           </button>

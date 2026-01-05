@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { 
   Plus, 
   Trash2, 
@@ -25,8 +25,10 @@ import {
   Wifi,
   Monitor,
   Printer,
-  Coffee
-} from 'lucide-react';
+  Coffee,
+  Ban,
+  Megaphone
+} from 'lucide-react'; 
 import { 
   db, 
   collection, 
@@ -36,7 +38,7 @@ import {
   deleteDoc, 
   doc, 
   Timestamp 
-} from '../../../firebase/firebase_config';
+} from '../../../firebase/firebase_config'; 
 
 // Interfaces based on your schema
 interface Hall {
@@ -45,13 +47,11 @@ interface Hall {
   name: string;
   description: string;
   capacity: number;
-  area_sqft?: number;
   equipment_included: string[];
-  images: string[];
-  hourly_rate: number;
-  daily_rate?: number;
-  security_deposit: number;
+  images: string[]; // Will store ImgBB URLs
+  hourly_rate: number; // In XAF
   is_available: boolean;
+  unavailable_notice?: string; // Notice message when hall is unavailable
   location: string;
   rules: string;
   created_at: Date;
@@ -62,16 +62,18 @@ interface HallFormData {
   name: string;
   description: string;
   capacity: number;
-  area_sqft?: number;
   equipment_included: string[];
   images: string[];
   hourly_rate: number;
-  daily_rate?: number;
-  security_deposit: number;
   is_available: boolean;
+  unavailable_notice?: string;
   location: string;
   rules: string;
 }
+
+// ImgBB API configuration
+const IMGBB_API_KEY = '6136f4b5f3aa641cf6def0325ed0adce'; // Replace with your ImgBB API key
+const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
 
 const HallManagement = () => {
   const [halls, setHalls] = useState<Hall[]>([]);
@@ -83,13 +85,11 @@ const HallManagement = () => {
     name: '',
     description: '',
     capacity: 20,
-    area_sqft: undefined,
     equipment_included: [],
     images: [],
-    hourly_rate: 50,
-    daily_rate: undefined,
-    security_deposit: 0,
+    hourly_rate: 5000, // Default 5000 XAF
     is_available: true,
+    unavailable_notice: '',
     location: '',
     rules: ''
   });
@@ -99,6 +99,7 @@ const HallManagement = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState<Record<string, number>>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number[]>([]); // Track progress for multiple images
 
   // Firebase collection references
   const hallsCollectionRef = collection(db, 'rental_halls');
@@ -122,13 +123,11 @@ const HallManagement = () => {
           name: hallData.name || '',
           description: hallData.description || '',
           capacity: Number(hallData.capacity) || 0,
-          area_sqft: hallData.area_sqft ? Number(hallData.area_sqft) : undefined,
           equipment_included: Array.isArray(hallData.equipment_included) ? hallData.equipment_included : [],
           images: Array.isArray(hallData.images) ? hallData.images : [],
           hourly_rate: Number(hallData.hourly_rate) || 0,
-          daily_rate: hallData.daily_rate ? Number(hallData.daily_rate) : undefined,
-          security_deposit: Number(hallData.security_deposit) || 0,
           is_available: hallData.is_available !== false,
+          unavailable_notice: hallData.unavailable_notice || '',
           location: hallData.location || '',
           rules: hallData.rules || '',
           created_at: hallData.created_at?.toDate() || new Date(),
@@ -152,6 +151,95 @@ const HallManagement = () => {
     }
   };
 
+  // Upload image to ImgBB
+  const uploadToImgBB = async (file: File, index: number): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('key', IMGBB_API_KEY);
+
+    try {
+      const response = await fetch(IMGBB_UPLOAD_URL, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Image upload failed');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        return data.data.url;
+      } else {
+        throw new Error(data.error?.message || 'Upload failed');
+      }
+    } catch (err: any) {
+      console.error('ImgBB upload error:', err);
+      throw err;
+    }
+  };
+
+  // Handle image upload to ImgBB
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setUploadProgress(new Array(files.length).fill(0));
+
+    const uploadedUrls: string[] = [];
+    
+    try {
+      // Upload all images sequentially
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Update progress
+        setUploadProgress(prev => {
+          const newProgress = [...prev];
+          newProgress[i] = 10; // Start upload
+          return newProgress;
+        });
+
+        const imageUrl = await uploadToImgBB(file, i);
+        uploadedUrls.push(imageUrl);
+
+        // Update progress to completed
+        setUploadProgress(prev => {
+          const newProgress = [...prev];
+          newProgress[i] = 100;
+          return newProgress;
+        });
+      }
+
+      if (!editingHall) {
+        // For new hall form
+        setNewHall(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedUrls]
+        }));
+      } else {
+        // For editing hall
+        setEditingHall(prev => prev ? {
+          ...prev,
+          images: [...prev.images, ...uploadedUrls]
+        } : prev);
+      }
+
+      alert('Images uploaded successfully!');
+    } catch (err: any) {
+      console.error('Error uploading images:', err);
+      alert(`Error uploading images: ${err.message}`);
+    } finally {
+      setUploading(false);
+      setUploadProgress([]);
+      // Clear file input
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  };
+
   // Handle adding a new hall
   const handleAddHall = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,13 +250,11 @@ const HallManagement = () => {
         name: newHall.name.trim(),
         description: newHall.description.trim(),
         capacity: newHall.capacity,
-        area_sqft: newHall.area_sqft || null,
         equipment_included: newHall.equipment_included.filter(item => item.trim() !== ''),
         images: newHall.images,
         hourly_rate: newHall.hourly_rate,
-        daily_rate: newHall.daily_rate || null,
-        security_deposit: newHall.security_deposit,
         is_available: newHall.is_available,
+        unavailable_notice: newHall.unavailable_notice?.trim() || null,
         location: newHall.location.trim(),
         rules: newHall.rules.trim(),
         created_at: Timestamp.now(),
@@ -184,13 +270,11 @@ const HallManagement = () => {
         name: hallData.name,
         description: hallData.description,
         capacity: hallData.capacity,
-        area_sqft: hallData.area_sqft || undefined,
         equipment_included: hallData.equipment_included,
         images: hallData.images,
         hourly_rate: hallData.hourly_rate,
-        daily_rate: hallData.daily_rate || undefined,
-        security_deposit: hallData.security_deposit,
         is_available: hallData.is_available,
+        unavailable_notice: hallData.unavailable_notice || undefined,
         location: hallData.location,
         rules: hallData.rules,
         created_at: hallData.created_at.toDate(),
@@ -204,13 +288,11 @@ const HallManagement = () => {
         name: '',
         description: '',
         capacity: 20,
-        area_sqft: undefined,
         equipment_included: [],
         images: [],
-        hourly_rate: 50,
-        daily_rate: undefined,
-        security_deposit: 0,
+        hourly_rate: 5000,
         is_available: true,
+        unavailable_notice: '',
         location: '',
         rules: ''
       });
@@ -235,13 +317,11 @@ const HallManagement = () => {
         name: editingHall.name.trim(),
         description: editingHall.description.trim(),
         capacity: editingHall.capacity,
-        area_sqft: editingHall.area_sqft || null,
         equipment_included: editingHall.equipment_included.filter(item => item.trim() !== ''),
         images: editingHall.images,
         hourly_rate: editingHall.hourly_rate,
-        daily_rate: editingHall.daily_rate || null,
-        security_deposit: editingHall.security_deposit,
         is_available: editingHall.is_available,
+        unavailable_notice: editingHall.unavailable_notice?.trim() || null,
         location: editingHall.location.trim(),
         rules: editingHall.rules.trim(),
         updated_at: Timestamp.now()
@@ -289,54 +369,54 @@ const HallManagement = () => {
 
   // Handle toggling hall availability
   const handleToggleAvailability = async (hallId: string, currentStatus: boolean) => {
-    try {
-      const hallDocRef = doc(db, 'rental_halls', hallId);
-      await updateDoc(hallDocRef, {
-        is_available: !currentStatus,
-        updated_at: Timestamp.now()
-      });
-      
-      // Update local state
-      setHalls(halls.map(hall => 
-        hall.id === hallId 
-          ? { ...hall, is_available: !currentStatus, updated_at: new Date() }
-          : hall
-      ));
-      
-      alert(`Hall ${!currentStatus ? 'activated' : 'deactivated'} successfully!`);
-    } catch (err: any) {
-      console.error('Error updating hall status:', err);
-      alert(`Error: ${err.message}`);
-    }
-  };
+    const hall = halls.find(h => h.id === hallId);
+    if (!hall) return;
 
-  // Handle image upload (for GitHub)
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    setUploading(true);
-    
-    // Simulate upload (in real app, you'd upload to GitHub)
-    setTimeout(() => {
-      const newImageUrls = files.map(file => URL.createObjectURL(file));
-      
-      if (!editingHall) {
-        // For new hall form
-        setNewHall(prev => ({
-          ...prev,
-          images: [...prev.images, ...newImageUrls]
-        }));
-      } else {
-        // For editing hall
-        setEditingHall(prev => prev ? {
-          ...prev,
-          images: [...prev.images, ...newImageUrls]
-        } : prev);
+    if (!currentStatus) {
+      // Activating hall - just toggle availability
+      try {
+        const hallDocRef = doc(db, 'rental_halls', hallId);
+        await updateDoc(hallDocRef, {
+          is_available: true,
+          unavailable_notice: null,
+          updated_at: Timestamp.now()
+        });
+        
+        setHalls(halls.map(hall => 
+          hall.id === hallId 
+            ? { ...hall, is_available: true, unavailable_notice: undefined, updated_at: new Date() }
+            : hall
+        ));
+        
+        alert('Hall activated successfully!');
+      } catch (err: any) {
+        console.error('Error activating hall:', err);
+        alert(`Error: ${err.message}`);
       }
+    } else {
+      // Deactivating hall - prompt for notice message
+      const notice = prompt('Enter a notice message for why this hall is unavailable (optional):');
       
-      setUploading(false);
-    }, 1000);
+      try {
+        const hallDocRef = doc(db, 'rental_halls', hallId);
+        await updateDoc(hallDocRef, {
+          is_available: false,
+          unavailable_notice: notice || null,
+          updated_at: Timestamp.now()
+        });
+        
+        setHalls(halls.map(hall => 
+          hall.id === hallId 
+            ? { ...hall, is_available: false, unavailable_notice: notice || undefined, updated_at: new Date() }
+            : hall
+        ));
+        
+        alert('Hall deactivated successfully!');
+      } catch (err: any) {
+        console.error('Error deactivating hall:', err);
+        alert(`Error: ${err.message}`);
+      }
+    }
   };
 
   // Handle removing an image
@@ -419,6 +499,11 @@ const HallManagement = () => {
     return null;
   };
 
+  // Calculate statistics
+  const totalHalls = halls.length;
+  const availableHalls = halls.filter(h => h.is_available).length;
+  const unavailableHalls = halls.filter(h => !h.is_available).length;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background py-20 p-8 flex items-center justify-center">
@@ -444,24 +529,22 @@ const HallManagement = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-card rounded-lg p-4 border">
           <h3 className="text-lg font-semibold mb-2">Total Halls</h3>
-          <p className="text-3xl font-bold text-primary">{halls.length}</p>
+          <p className="text-3xl font-bold text-primary">{totalHalls}</p>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <h3 className="text-lg font-semibold mb-2">Available</h3>
-          <p className="text-3xl font-bold text-green-600">
-            {halls.filter(h => h.is_available).length}
-          </p>
+          <p className="text-3xl font-bold text-green-600">{availableHalls}</p>
+        </div>
+        <div className="bg-card rounded-lg p-4 border">
+          <h3 className="text-lg font-semibold mb-2">Unavailable</h3>
+          <p className="text-3xl font-bold text-red-600">{unavailableHalls}</p>
         </div>
         <div className="bg-card rounded-lg p-4 border">
           <h3 className="text-lg font-semibold mb-2">Avg. Hourly Rate</h3>
           <p className="text-3xl font-bold text-blue-600">
-            ${(halls.reduce((total, hall) => total + hall.hourly_rate, 0) / (halls.length || 1)).toFixed(2)}
-          </p>
-        </div>
-        <div className="bg-card rounded-lg p-4 border">
-          <h3 className="text-lg font-semibold mb-2">Avg. Capacity</h3>
-          <p className="text-3xl font-bold text-purple-600">
-            {Math.round(halls.reduce((total, hall) => total + hall.capacity, 0) / (halls.length || 1))} people
+            {halls.length > 0 ? 
+              Math.round(halls.reduce((total, hall) => total + hall.hourly_rate, 0) / halls.length).toLocaleString() 
+              : '0'} XAF
           </p>
         </div>
       </div>
@@ -494,9 +577,9 @@ const HallManagement = () => {
 
               <form onSubmit={handleAddHall}>
                 <div className="space-y-6">
-                  {/* Basic Information */}
+                  {/* Hall Name */}
                   <div className="bg-muted/30 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-4 text-lg">Basic Information</h3>
+                    <h3 className="font-semibold mb-4 text-lg">Hall Information</h3>
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">Hall Name *</label>
@@ -505,19 +588,20 @@ const HallManagement = () => {
                           value={newHall.name}
                           onChange={(e) => setNewHall({...newHall, name: e.target.value})}
                           className="w-full px-3 py-2 border rounded-md bg-background"
-                          placeholder="e.g., 3D Printing Innovation Hall"
+                          placeholder="e.g., Conference Hall A"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-2">Description</label>
+                        <label className="block text-sm font-medium mb-2">Description *</label>
                         <textarea
                           value={newHall.description}
                           onChange={(e) => setNewHall({...newHall, description: e.target.value})}
                           className="w-full px-3 py-2 border rounded-md bg-background min-h-[100px]"
                           placeholder="Describe the hall features, amenities, and unique selling points..."
                           rows={4}
+                          required
                         />
                       </div>
 
@@ -534,15 +618,18 @@ const HallManagement = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Area (sq ft)</label>
-                          <input
-                            type="number"
-                            value={newHall.area_sqft || ''}
-                            onChange={(e) => setNewHall({...newHall, area_sqft: e.target.value ? parseFloat(e.target.value) : undefined})}
-                            className="w-full px-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                          />
+                          <label className="block text-sm font-medium mb-2">Hourly Rate (XAF) *</label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground">XAF</span>
+                            <input
+                              type="number"
+                              value={newHall.hourly_rate}
+                              onChange={(e) => setNewHall({...newHall, hourly_rate: parseFloat(e.target.value) || 0})}
+                              className="w-full pl-10 pr-3 py-2 border rounded-md bg-background"
+                              min="0"
+                              required
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -556,56 +643,6 @@ const HallManagement = () => {
                           placeholder="e.g., Main Building, Floor 3, Room 301"
                           required
                         />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pricing */}
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-4 text-lg">Pricing</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Hourly Rate ($) *</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                          <input
-                            type="number"
-                            value={newHall.hourly_rate}
-                            onChange={(e) => setNewHall({...newHall, hourly_rate: parseFloat(e.target.value) || 0})}
-                            className="w-full pl-8 pr-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Daily Rate ($)</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                          <input
-                            type="number"
-                            value={newHall.daily_rate || ''}
-                            onChange={(e) => setNewHall({...newHall, daily_rate: e.target.value ? parseFloat(e.target.value) : undefined})}
-                            className="w-full pl-8 pr-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Security Deposit ($)</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                          <input
-                            type="number"
-                            value={newHall.security_deposit}
-                            onChange={(e) => setNewHall({...newHall, security_deposit: parseFloat(e.target.value) || 0})}
-                            className="w-full pl-8 pr-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -671,7 +708,7 @@ const HallManagement = () => {
                     </div>
 
                     <div className="bg-muted/30 p-4 rounded-lg">
-                      <h3 className="font-semibold mb-4 text-lg">Hall Images</h3>
+                      <h3 className="font-semibold mb-4 text-lg">Hall Images *</h3>
                       <div className="grid grid-cols-3 gap-2 mb-4">
                         {newHall.images.map((img, index) => (
                           <div key={index} className="relative group">
@@ -689,19 +726,19 @@ const HallManagement = () => {
                             </button>
                           </div>
                         ))}
-                        {uploading && (
-                          <div className="col-span-3 p-4 border rounded-md bg-muted/50">
+                        {uploading && uploadProgress.map((progress, index) => (
+                          <div key={index} className="col-span-1 p-4 border rounded-md bg-muted/50">
                             <div className="flex items-center justify-center gap-2">
                               <Loader2 className="w-5 h-5 animate-spin" />
-                              <span>Uploading...</span>
+                              <span>Uploading... {progress}%</span>
                             </div>
                           </div>
-                        )}
+                        ))}
                       </div>
                       <label className="flex flex-col items-center justify-center gap-2 px-4 py-6 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
                         <Upload className="w-8 h-8 text-muted-foreground" />
                         <span className="font-medium">Upload Images</span>
-                        <span className="text-sm text-muted-foreground">Drag & drop or click to browse</span>
+                        <span className="text-sm text-muted-foreground">Click to browse (Required)</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -710,6 +747,24 @@ const HallManagement = () => {
                           multiple
                           disabled={uploading}
                         />
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-2">Images will be uploaded to ImgBB</p>
+                    </div>
+                  </div>
+
+                  {/* Availability */}
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-4 text-lg">Availability</h3>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="is_available"
+                        checked={newHall.is_available}
+                        onChange={(e) => setNewHall({...newHall, is_available: e.target.checked})}
+                        className="w-4 h-4"
+                      />
+                      <label htmlFor="is_available" className="text-sm font-medium">
+                        Hall is available for booking
                       </label>
                     </div>
                   </div>
@@ -727,7 +782,7 @@ const HallManagement = () => {
                     <button
                       type="submit"
                       className="flex-1 px-4 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium"
-                      disabled={uploading}
+                      disabled={uploading || newHall.images.length === 0}
                     >
                       {uploading ? (
                         <span className="flex items-center justify-center gap-2">
@@ -748,8 +803,8 @@ const HallManagement = () => {
 
       {/* Edit Hall Form Modal */}
       {editingHall && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-background rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-muted">
+          <div className="bg-background rounded-lg border shadow-xl max-w-3xl w-full h-180 overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold">Edit Hall: {editingHall.name}</h2>
@@ -763,9 +818,9 @@ const HallManagement = () => {
 
               <form onSubmit={handleUpdateHall}>
                 <div className="space-y-6">
-                  {/* Basic Information */}
+                  {/* Hall Information */}
                   <div className="bg-muted/30 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-4 text-lg">Basic Information</h3>
+                    <h3 className="font-semibold mb-4 text-lg">Hall Information</h3>
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium mb-2">Hall Name *</label>
@@ -779,12 +834,13 @@ const HallManagement = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium mb-2">Description</label>
+                        <label className="block text-sm font-medium mb-2">Description *</label>
                         <textarea
                           value={editingHall.description}
                           onChange={(e) => setEditingHall({...editingHall, description: e.target.value})}
                           className="w-full px-3 py-2 border rounded-md bg-background min-h-[100px]"
                           rows={4}
+                          required
                         />
                       </div>
 
@@ -801,15 +857,18 @@ const HallManagement = () => {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2">Area (sq ft)</label>
-                          <input
-                            type="number"
-                            value={editingHall.area_sqft || ''}
-                            onChange={(e) => setEditingHall({...editingHall, area_sqft: e.target.value ? parseFloat(e.target.value) : undefined})}
-                            className="w-full px-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                          />
+                          <label className="block text-sm font-medium mb-2">Hourly Rate (XAF) *</label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-muted-foreground">XAF</span>
+                            <input
+                              type="number"
+                              value={editingHall.hourly_rate}
+                              onChange={(e) => setEditingHall({...editingHall, hourly_rate: parseFloat(e.target.value) || 0})}
+                              className="w-full pl-10 pr-12 py-2 border rounded-md bg-background"
+                              min="0"
+                              required
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -822,56 +881,6 @@ const HallManagement = () => {
                           className="w-full px-3 py-2 border rounded-md bg-background"
                           required
                         />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pricing */}
-                  <div className="bg-muted/30 p-4 rounded-lg">
-                    <h3 className="font-semibold mb-4 text-lg">Pricing</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Hourly Rate ($) *</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                          <input
-                            type="number"
-                            value={editingHall.hourly_rate}
-                            onChange={(e) => setEditingHall({...editingHall, hourly_rate: parseFloat(e.target.value) || 0})}
-                            className="w-full pl-8 pr-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Daily Rate ($)</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                          <input
-                            type="number"
-                            value={editingHall.daily_rate || ''}
-                            onChange={(e) => setEditingHall({...editingHall, daily_rate: e.target.value ? parseFloat(e.target.value) : undefined})}
-                            className="w-full pl-8 pr-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">Security Deposit ($)</label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">$</span>
-                          <input
-                            type="number"
-                            value={editingHall.security_deposit}
-                            onChange={(e) => setEditingHall({...editingHall, security_deposit: parseFloat(e.target.value) || 0})}
-                            className="w-full pl-8 pr-3 py-2 border rounded-md bg-background"
-                            min="0"
-                            step="0.01"
-                          />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -964,8 +973,41 @@ const HallManagement = () => {
                           onChange={handleImageUpload}
                           className="hidden"
                           multiple
+                          disabled={uploading}
                         />
                       </label>
+                    </div>
+                  </div>
+
+                  {/* Availability */}
+                  <div className="bg-muted/30 p-4 rounded-lg">
+                    <h3 className="font-semibold mb-4 text-lg">Availability</h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id="edit_is_available"
+                          checked={editingHall.is_available}
+                          onChange={(e) => setEditingHall({...editingHall, is_available: e.target.checked})}
+                          className="w-4 h-4"
+                        />
+                        <label htmlFor="edit_is_available" className="text-sm font-medium">
+                          Hall is available for booking
+                        </label>
+                      </div>
+                      
+                      {!editingHall.is_available && (
+                        <div>
+                          <label className="block text-sm font-medium mb-2">Unavailable Notice</label>
+                          <textarea
+                            value={editingHall.unavailable_notice || ''}
+                            onChange={(e) => setEditingHall({...editingHall, unavailable_notice: e.target.value})}
+                            className="w-full px-3 py-2 border rounded-md bg-background"
+                            placeholder="Reason why this hall is unavailable..."
+                            rows={3}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1024,12 +1066,22 @@ const HallManagement = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-primary">${hall.hourly_rate}<span className="text-sm font-normal text-muted-foreground">/hour</span></span>
-                  {hall.daily_rate && (
-                    <span className="text-sm text-muted-foreground">${hall.daily_rate}/day</span>
-                  )}
+                  <span className="text-lg font-bold text-primary">{hall.hourly_rate.toLocaleString()} XAF<span className="text-sm font-normal text-muted-foreground">/hour</span></span>
                 </div>
               </div>
+
+              {/* Unavailable Notice */}
+              {!hall.is_available && hall.unavailable_notice && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-3 mx-4 mt-3 rounded">
+                  <div className="flex items-start gap-2">
+                    <Ban className="w-4 h-4 text-red-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-red-800">Unavailable Notice</p>
+                      <p className="text-sm text-red-700">{hall.unavailable_notice}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Hall Content */}
               <div className="p-4">
@@ -1054,7 +1106,7 @@ const HallManagement = () => {
                           </button>
                           <button
                             onClick={() => nextImage(hall.id)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p1 rounded-full hover:bg-black/70 transition-colors"
                             title="Next image"
                           >
                             <ChevronRight className="w-5 h-5" />
@@ -1088,21 +1140,13 @@ const HallManagement = () => {
                         <div className="text-xs text-muted-foreground">Capacity</div>
                       </div>
                     </div>
-                    {hall.area_sqft && (
-                      <div className="flex items-center gap-2">
-                        <Ruler className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <div className="font-medium">{hall.area_sqft} sq ft</div>
-                          <div className="text-xs text-muted-foreground">Area</div>
-                        </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{hall.location}</div>
+                        <div className="text-xs text-muted-foreground">Location</div>
                       </div>
-                    )}
-                  </div>
-
-                  {/* Location */}
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">{hall.location}</span>
+                    </div>
                   </div>
 
                   {/* Description Preview */}
@@ -1132,14 +1176,6 @@ const HallManagement = () => {
                     </div>
                   )}
 
-                  {/* Security Deposit */}
-                  {hall.security_deposit > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Shield className="w-4 h-4 text-muted-foreground" />
-                      <span>Security deposit: <span className="font-medium">${hall.security_deposit}</span></span>
-                    </div>
-                  )}
-
                   {/* Rules Preview */}
                   {hall.rules && (
                     <div>
@@ -1154,7 +1190,7 @@ const HallManagement = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2 pt-3 border-t">
+                  <div className="flex gap-2 pt-6 p-4 border-t">
                     <button
                       onClick={() => setEditingHall(hall)}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
