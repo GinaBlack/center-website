@@ -178,34 +178,96 @@ const handleRegister = async () => {
   }
 };
 
-  const handleUnregister = async () => {
-    if (!program?.id || !isRegistered || !currentUser) return;
+const handleRegister = async () => {
+  if (!currentUser) {
+    alert('Please login to register for this training program');
+    navigate('/login');
+    return;
+  }
 
-    try {
-      const registrationsRef = collection(db, 'registrations');
-      const q = query(
-        registrationsRef, 
-        where('programId', '==', program.id),
-        where('userId', '==', currentUser.uid)
-      );
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        // Note: In Firestore, you need to delete the document
-        // This would require a deleteDoc function
-        alert('Please contact administration to unregister.');
-        return;
-      }
+  if (!program?.id) return;
 
-      setIsRegistered(false);
-      setCurrentParticipants(prev => prev - 1);
-      
-      alert(`Successfully unregistered from ${program.title}`);
-    } catch (err) {
-      console.error('Error unregistering from program:', err);
-      alert('Failed to unregister. Please contact administration.');
+  try {
+    // Check if program has capacity
+    if (currentParticipants >= program.maxParticipants) {
+      alert('This program has reached maximum capacity. Please try another program.');
+      return;
     }
-  };
+
+    // Check if already registered
+    if (isRegistered) {
+      alert('You are already registered for this program.');
+      return;
+    }
+
+    // Create registration record with 'pending' status
+    const registrationsRef = collection(db, 'registrations');
+    const registrationData = {
+      programId: program.id,
+      userId: currentUser.uid,
+      userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+      userEmail: currentUser.email,
+      userPhone: currentUser.phoneNumber,
+      status: 'pending',
+      appliedAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const registrationDoc = await addDoc(registrationsRef, registrationData);
+
+    // Send confirmation notification to user
+    await sendNotification({
+      user_email: currentUser.email || '',
+      message: `Your registration for "${program.title}" has been submitted and is pending admin approval. You will be notified once reviewed.`,
+      type: 'status_change',
+      status_before: null,
+      status_after: 'pending',
+      title: 'Registration Submitted! ⏳',
+      sent_via: 'both',
+      action_url: `/training/${program.id}`,
+      related_program_id: program.id,
+      related_program_name: program.title,
+      metadata: {
+        registration_id: registrationDoc.id,
+        program_id: program.id,
+        program_name: program.title,
+        user_id: currentUser.uid,
+        applied_at: new Date().toISOString(),
+      },
+    });
+
+    // Send notification to admin (fetch admin users)
+    const adminUsers = await fetchAdminUsers();
+    for (const admin of adminUsers) {
+      await sendNotification({
+        user_email: admin.email,
+        message: `New registration request from ${currentUser.displayName || currentUser.email} for "${program.title}". Please review in the admin panel.`,
+        type: 'booking_created',
+        title: 'New Registration Request 📋',
+        sent_via: 'email',
+        action_url: `/admin/students?program=${program.id}`,
+        related_program_id: program.id,
+        related_program_name: program.title,
+        metadata: {
+          registration_id: registrationDoc.id,
+          program_id: program.id,
+          program_name: program.title,
+          applicant_id: currentUser.uid,
+          applicant_name: currentUser.displayName,
+          applicant_email: currentUser.email,
+        },
+      });
+    }
+
+    setIsRegistered(true);
+    setCurrentParticipants(prev => prev + 1);
+    
+    alert(`Registration submitted successfully! Your application is pending admin approval. Check your email and notifications for updates.`);
+  } catch (err) {
+    console.error('Error registering for program:', err);
+    alert('Failed to register. Please try again.');
+  }
+};
 
   const handleViewStudents = () => {
     navigate(`/course/${id}/students`);
