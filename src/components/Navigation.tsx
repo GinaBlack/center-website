@@ -29,7 +29,7 @@ export function Navigation() {
     { path: "/upload", label: "Submit Project" },
     { path: "/book-hall", label: "Book Hall" },
     { path: "/scanning", label: "3D Scanning" },
-    { path: "/workshops", label: t("navigation.workshops") },
+    { path: "/workshops", label: "Trainings" },
     { path: "/about", label: t("navigation.about") },
     { path: "/contact", label: t("navigation.contact") },
 

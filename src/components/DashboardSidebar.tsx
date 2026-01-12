@@ -29,7 +29,8 @@ import {
   RockingChairIcon,
   PaperclipIcon,
   Upload,
-  AlertCircle
+  AlertCircle,
+  GraduationCapIcon
 } from "lucide-react";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase/firebase_config";
@@ -70,12 +71,13 @@ const adminLinks = [
   { to: "/admin/courses", label: "Course Management", icon: <Book size={20} /> },
   { to: "/admin/hallmanagement", label: "Hall Management", icon: <RockingChairIcon size={20} /> },
   { to: "/admin/systemsettings", label: "System Settings", icon: <Settings size={20} /> },
+  { to: "/admin/students", label: "Student Management", icon: <GraduationCapIcon size={20} /> },
 ];
 
 const quickLinks = [
   { to: "/", label: "Home", icon: <Home size={20} /> },
   { to: "/dashboard/profile", label: "Profile", icon: <User size={20} /> },
-  { to: "/dashboard/notifications", label: "Notifications", icon: <Bell size={20} /> },
+  { to: "/dashboard/profile/notifications", label: "Notifications", icon: <Bell size={20} /> },
   { to: "/dashboard/profile/settings", label: "Settings", icon: <Settings size={20} /> },
   { to: "/dashboard/profile/help", label: "Help", icon: <HelpCircle size={20} /> },
 ];

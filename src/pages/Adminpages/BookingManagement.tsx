@@ -889,23 +889,23 @@ const BookingManagement = () => {
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Upcoming</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.upcoming}</p>
+          <p className="text-2xl font-bold text-blue-500">{stats.upcoming}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Pending Payment</p>
-          <p className="text-2xl font-bold text-orange-600">{stats.pendingPayment}</p>
+          <p className="text-2xl font-bold text-orange-500">{stats.pendingPayment}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Paid</p>
-          <p className="text-2xl font-bold text-green-600">{stats.paid}</p>
+          <p className="text-2xl font-bold text-green-500">{stats.paid}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Actual Revenue</p>
-          <p className="text-2xl font-bold text-green-600">{stats.actualRevenue.toFixed(0)} XAF</p>
+          <p className="text-2xl font-bold text-green-500">{stats.actualRevenue.toFixed(0)} XAF</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Collected</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.collectedRevenue.toFixed(0)} XAF</p>
+          <p className="text-2xl font-bold text-blue-500">{stats.collectedRevenue.toFixed(0)} XAF</p>
         </div>
       </div>
 
@@ -972,7 +972,7 @@ const BookingManagement = () => {
 
             <button
               onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-700"
             >
               <Download className="w-4 h-4" />
               Export
@@ -1133,8 +1133,8 @@ const BookingManagement = () => {
                             </div>
 
                             {/* Price Management */}
-                            <div>
-                              <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <div className='border-l border-r p-2'>
+                              <h4 className="font-medium mb-3 flex  items-center gap-2">
                                 <Calculator className="w-5 h-5" />
                                 Price Management
                               </h4>
@@ -1147,7 +1147,7 @@ const BookingManagement = () => {
                                       type="number"
                                       value={priceData.totalCost}
                                       onChange={(e) => setPriceData({...priceData, totalCost: Number(e.target.value)})}
-                                      className="w-full px-3 py-2 border rounded bg-background"
+                                      className="w-full px-3 py-2 border  rounded bg-background"
                                       min="0"
                                       step="100"
                                     />
@@ -1196,7 +1196,7 @@ const BookingManagement = () => {
                                     <button
                                       onClick={() => handlePriceUpdate(booking)}
                                       disabled={updating}
-                                      className="flex-1 px-3 py-2 bg-primary text-white rounded text-sm flex items-center justify-center gap-1"
+                                      className="flex-1 px-3 py-2 bg-blue-500 text-white rounded text-sm flex items-center justify-center gap-1"
                                     >
                                       {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                                       {updating ? 'Updating...' : 'Update Price'}
@@ -1272,7 +1272,7 @@ const BookingManagement = () => {
                                   
                                   <button
                                     onClick={() => handleEditPrice(booking)}
-                                    className="w-full mt-2 px-3 py-2 bg-primary text-white rounded text-sm hover:bg-primary/90 flex items-center justify-center gap-1"
+                                    className="w-full mt-2 px-3 py-2 bg-blue-500 text-white rounded text-sm  flex items-center justify-center gap-1"
                                   >
                                     <Edit className="w-4 h-4" />
                                     Edit Price
@@ -1282,7 +1282,7 @@ const BookingManagement = () => {
                             </div>
 
                             {/* Payment Management */}
-                            <div>
+                            <div className='border-r pr-4'>
                               <h4 className="font-medium mb-3 flex items-center gap-2">
                                 <CreditCard className="w-5 h-5" />
                                 Payment Management
@@ -1362,7 +1362,7 @@ const BookingManagement = () => {
                                     <button
                                       onClick={() => handlePaymentUpdate(booking)}
                                       disabled={updating}
-                                      className="flex-1 px-3 py-2 bg-primary text-white rounded text-sm flex items-center justify-center gap-1"
+                                      className="flex-1 px-3 py-2 bg-green-500 text-white rounded text-sm flex items-center justify-center gap-1"
                                     >
                                       {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                       {updating ? 'Updating...' : 'Update Payment'}
@@ -1440,7 +1440,7 @@ const BookingManagement = () => {
                                   
                                   <button
                                     onClick={() => handleEditPayment(booking)}
-                                    className="w-full mt-2 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 flex items-center justify-center gap-1"
+                                    className="w-full mt-2 px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-700 flex items-center justify-center gap-1"
                                   >
                                     <CreditCard className="w-4 h-4" />
                                     Manage Payment
@@ -1449,7 +1449,7 @@ const BookingManagement = () => {
                                   {booking.paymentStatus !== 'paid' && booking.status === 'accepted' && (
                                     <button
                                       onClick={() => sendManualNotification(booking, `Payment Reminder: Your booking for ${booking.hallName} on ${formatDateString(booking.bookingDate)} has a pending payment of ${booking.totalCost.toFixed(0)} XAF. Please complete your payment to confirm your booking.`)}
-                                      className="w-full px-3 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 flex items-center justify-center gap-1"
+                                      className="w-full px-3 py-2 bg-red-500 text-white rounded text-sm hover:bg-orange-700 flex items-center justify-center gap-1"
                                     >
                                       <Bell className="w-4 h-4" />
                                       Send Payment Reminder
@@ -1475,7 +1475,7 @@ const BookingManagement = () => {
                                         <button
                                           onClick={() => handleStatusChange(booking, 'accepted')}
                                           disabled={updating}
-                                          className="px-3 py-1 bg-green-600 text-white rounded text-sm flex items-center gap-1"
+                                          className="px-3 py-1 bg-green-500 text-white rounded text-sm flex items-center gap-1"
                                         >
                                           <Check className="w-3 h-3" />
                                           Accept
@@ -1488,7 +1488,7 @@ const BookingManagement = () => {
                                             }
                                           }}
                                           disabled={updating}
-                                          className="px-3 py-1 bg-red-600 text-white rounded text-sm flex items-center gap-1"
+                                          className="px-3 py-1 bg-red-500 text-white rounded text-sm flex items-center gap-1"
                                         >
                                           <X className="w-3 h-3" />
                                           Reject
@@ -1505,7 +1505,7 @@ const BookingManagement = () => {
                                             }
                                           }}
                                           disabled={updating}
-                                          className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+                                          className="px-3 py-1 bg-red-500 text-white rounded text-sm"
                                         >
                                           Cancel Booking
                                         </button>
@@ -1601,8 +1601,8 @@ const BookingManagement = () => {
                                 </div>
 
                                 {booking.cancellationReason && (
-                                  <div className="p-2 bg-red-50 rounded">
-                                    <h5 className="font-medium text-sm mb-1 text-red-800">Cancellation Reason</h5>
+                                  <div className="p-2 bg-red-500 rounded">
+                                    <h5 className="font-medium text-sm mb-1 text-red-500">Cancellation Reason</h5>
                                     <p className="text-sm">{booking.cancellationReason}</p>
                                   </div>
                                 )}

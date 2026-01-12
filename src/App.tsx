@@ -26,6 +26,7 @@ import MaterialLibraryPage from './pages/publicpages/MaterialLibraryPage';
 import PricingPage from './pages/publicpages/PricingPage';
 import AboutPage from './pages/publicpages/AboutPage';
 import ContactPage from './pages/publicpages/ContactPage';
+import TrainingDetailsPage from './pages/publicpages/TrainingDetailsPage';
 
 // Auth Pages
 import LoginPage from './pages/Authpages/LoginPage';
@@ -69,7 +70,8 @@ import GalleryManagement from './pages/Adminpages/ContentManagement/GalleryManag
 import ContactMessages from './pages/Adminpages/ContactMessages';
 import SytemSettings from './pages/Adminpages/SystemSetting';
 import HallManagement from './pages/Adminpages/ContentManagement/HallManagement'
-
+import StudentCourseManagement from './pages/Adminpages/ContentManagement/CourseStudents';
+import StudentManagement from './pages/Adminpages/ContentManagement/Students';
 
 // Error Pages
 import Unauthorized from './pages/Errors/Unauthorised';
@@ -120,6 +122,7 @@ const App = () => {
                 <Route path="/book-hall" element={<BookHall />} />
                 <Route path="/scanning" element={<ScanningService />} />
                 <Route path="/upload" element={<UploadProject />} />
+                <Route path="/training/:id" element={<TrainingDetailsPage />} />
 
                 <Route path="/unauthorized" element={<Unauthorized />} />
               </Route>
@@ -197,7 +200,11 @@ const App = () => {
 
                 <Route path="users" element={<UserManagement />} />
                 <Route path="projects" element={<ProjectManagement />} />
-                <Route path="courses" element={<CourseManagement />} />
+                   <Route path="courses">
+                  <Route index element={<CourseManagement />} />
+                  <Route path=":id/students" element={<StudentCourseManagement/>}/>
+                </Route>
+                  <Route path="students" element={<StudentManagement />} />
                 <Route path="materials" element={<MaterialManagement />} />
                 <Route path="bookings" element={<BookingManagement/>} />
                 <Route path="projects" element={<ProjectManagement />} />

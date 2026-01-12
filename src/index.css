@@ -1228,7 +1228,10 @@
     border-bottom-style: var(--tw-border-style);
     border-bottom-width: 1px;
   }
-
+  .border-l {
+    border-left-style: var(--tw-border-style);
+    border-left-width: 1px;
+  }
   .border-l-4 {
     border-left-style: var(--tw-border-style);
     border-left-width: 4px;
@@ -1671,11 +1674,11 @@
   .pr-16 {
     padding-right: calc(var(--spacing) * 16);
   }
-  .pr-x {
-    padding-right: calc(var(--spacing) * 80);
+ 
+  .pr-4 {
+    padding-right: calc(var(--spacing) * 4);
   }
-
-  .pb-3 {
+ .pb-3 {
     padding-bottom: calc(var(--spacing) * 3);
   }
 
