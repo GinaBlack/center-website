@@ -71,7 +71,7 @@ import ContactMessages from './pages/Adminpages/ContactMessages';
 import SytemSettings from './pages/Adminpages/SystemSetting';
 import HallManagement from './pages/Adminpages/ContentManagement/HallManagement'
 import StudentCourseManagement from './pages/Adminpages/ContentManagement/CourseStudents';
-import StudentManagement from './pages/Adminpages/ContentManagement/Students';
+import StudentManagement from './pages/Adminpages/ContentManagement/students';
 
 // Error Pages
 import Unauthorized from './pages/Errors/Unauthorised';

@@ -48,6 +48,8 @@ const CourseManagement = () => {
   const [programToDelete, setProgramToDelete] = useState<string | null>(null);
   const [expandedProgram, setExpandedProgram] = useState<string | null>(null);
   const [imageUploading, setImageUploading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
 
   // Form state
   const [formData, setFormData] = useState<TrainingProgram>({
@@ -147,12 +149,11 @@ const CourseManagement = () => {
     try {
       setImageUploading(true);
       
-      // For ImgBB upload (you'll need to implement this)
-      // This is a placeholder - implement actual ImgBB API integration
+      // For ImgBB upload
       const formData = new FormData();
       formData.append('image', file);
       
-      // Example using ImgBB API (you need to get your own API key)
+      // Using ImgBB API (replace with your own API key)
       const response = await fetch('https://api.imgbb.com/1/upload?key=6136f4b5f3aa641cf6def0325ed0adce', {
         method: 'POST',
         body: formData,
@@ -163,15 +164,51 @@ const CourseManagement = () => {
       if (data.success) {
         setFormData(prev => ({ ...prev, imageUrl: data.data.url }));
         setSuccess('Image uploaded successfully!');
+        return data.data.url;
       } else {
         throw new Error('Image upload failed');
       }
     } catch (err) {
       console.error('Error uploading image:', err);
       setError('Failed to upload image');
+      throw err;
     } finally {
       setImageUploading(false);
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        setError('Please select a valid image file (JPEG, PNG, GIF, WebP)');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        setError('Image size should be less than 5MB');
+        return;
+      }
+
+      setImageFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setFormData(prev => ({ ...prev, imageUrl: '' }));
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -236,6 +273,13 @@ const CourseManagement = () => {
     }
 
     try {
+      let imageUrl = formData.imageUrl;
+      
+      // Upload image if a new file was selected
+      if (imageFile) {
+        imageUrl = await handleImageUpload(imageFile);
+      }
+
       const programsRef = collection(db, 'trainingPrograms');
       const now = new Date();
       
@@ -244,6 +288,7 @@ const CourseManagement = () => {
         const programRef = doc(db, 'trainingPrograms', editingProgram.id);
         await updateDoc(programRef, {
           ...formData,
+          imageUrl,
           updatedAt: now,
         });
         setSuccess('Program updated successfully!');
@@ -251,6 +296,7 @@ const CourseManagement = () => {
         // Add new program
         await addDoc(programsRef, {
           ...formData,
+          imageUrl,
           createdAt: now,
           updatedAt: now,
         });
@@ -275,6 +321,10 @@ const CourseManagement = () => {
       learningOutcomes: [...program.learningOutcomes],
       syllabus: [...program.syllabus],
     });
+    if (program.imageUrl) {
+      setImagePreview(program.imageUrl);
+    }
+    setImageFile(null);
     setShowAddForm(true);
   };
 
@@ -358,6 +408,8 @@ const CourseManagement = () => {
     setPrereqInput('');
     setOutcomeInput('');
     setSyllabusInput('');
+    setImageFile(null);
+    setImagePreview('');
     setEditingProgram(null);
     setShowAddForm(false);
   };
@@ -570,19 +622,79 @@ const CourseManagement = () => {
                   />
                 </div>
 
+                {/* Image Picker - Replaced Image URL field */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Image URL (ImgBB)
+                    Program Image
                   </label>
-                  <input
-                    type="url"
-                    name="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://i.ibb.co/..."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
+                  
+                  {imagePreview ? (
+                    <div className="mb-4">
+                      <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-300">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formData.imageUrl && !imageFile ? 'Using existing image' : 'New image selected'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mb-4">
+                      <div className="flex items-center justify-center w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 transition cursor-pointer">
+                        <label htmlFor="imageUpload" className="text-center cursor-pointer">
+                          <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="block text-sm text-gray-600">Click to upload</span>
+                          <span className="block text-xs text-gray-500">JPEG, PNG, GIF, WebP</span>
+                          <span className="block text-xs text-gray-500">Max 5MB</span>
+                        </label>
+                        <input
+                          id="imageUpload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center gap-3">
+                    <label htmlFor="imageUpload" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition cursor-pointer text-sm font-medium">
+                      {imagePreview ? 'Change Image' : 'Upload Image'}
+                    </label>
+                    <input
+                      id="imageUpload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    {imageUploading && (
+                      <span className="text-sm text-gray-500 flex items-center">
+                        <svg className="animate-spin h-4 w-4 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Uploading...
+                      </span>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-2">
                     Leave empty to use category-based color background
                   </p>
                 </div>
@@ -605,15 +717,16 @@ const CourseManagement = () => {
               </div>
 
               {/* Array Inputs (Prerequisites, Outcomes, Syllabus) */}
-              {/* ... (keep the existing array input components from previous version) ... */}
+              {/* ... (keep the existing array input components) ... */}
 
               {/* Form Actions */}
               <div className="flex gap-3 pt-6 border-t">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                  disabled={imageUploading}
+                  className={`px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium ${imageUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {editingProgram ? 'Update Program' : 'Add Program'}
+                  {imageUploading ? 'Uploading Image...' : editingProgram ? 'Update Program' : 'Add Program'}
                 </button>
                 <button
                   type="button"
@@ -823,11 +936,16 @@ const CourseManagement = () => {
                             {/* Image URL */}
                             {program.imageUrl && (
                               <div>
-                                <h4 className="font-medium text-gray-900 mb-2">Image URL</h4>
-                                <div className="text-sm text-gray-600 break-all">
-                                  <a href={program.imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                                    {program.imageUrl.substring(0, 50)}...
-                                  </a>
+                                <h4 className="font-medium text-gray-900 mb-2">Image</h4>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-12 h-12 rounded overflow-hidden">
+                                    <img src={program.imageUrl} alt={program.title} className="w-full h-full object-cover" />
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    <a href={program.imageUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                      View image
+                                    </a>
+                                  </div>
                                 </div>
                               </div>
                             )}
