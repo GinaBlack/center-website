@@ -52,7 +52,7 @@ import ChangePassword from './pages/Userpages/Profile/ChangePassword';
 import EditProfile from './pages/Userpages/Profile/EditProfile';
 import Settings from './pages/Userpages/Profile/SettingsPage'
 import Help from './pages/Userpages/Profile/Help'
-import ScanningService from './pages/Userpages/Services/ThreeDScanningPage';
+import ScanningService from './pages/publicpages/ThreeDScanningPage';
 
 // Instructor Pages
 import MyInstructorCourses from './pages/Lecturerpages/MyCourse';

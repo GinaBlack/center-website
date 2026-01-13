@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { db } from '../../../firebase/firebase_config';
-import { doc, getDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { 
+  doc, getDoc, collection, query, where, getDocs, updateDoc,
+  addDoc, serverTimestamp
+} from 'firebase/firestore';
 
 interface Student {
   id: string;
@@ -10,7 +13,7 @@ interface Student {
   email: string;
   phone?: string;
   registeredAt: Date;
-  status: 'active' | 'pending' | 'completed';
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
 }
 
 interface TrainingProgram {
@@ -72,13 +75,31 @@ const CourseStudentsPage = () => {
           
           if (userSnap.exists()) {
             const userData = userSnap.data();
+            
+            // Handle potential undefined registeredAt
+            let registeredAt: Date;
+            if (registrationData.registeredAt) {
+              // If it's a Firestore timestamp, convert to Date
+              if (typeof registrationData.registeredAt.toDate === 'function') {
+                registeredAt = registrationData.registeredAt.toDate();
+              } else if (registrationData.registeredAt instanceof Date) {
+                registeredAt = registrationData.registeredAt;
+              } else {
+                // Try to parse it as a date string/number
+                registeredAt = new Date(registrationData.registeredAt);
+              }
+            } else {
+              // Fallback to current date or a default
+              registeredAt = new Date();
+            }
+            
             studentsData.push({
               id: userSnap.id,
               name: userData.displayName || userData.email?.split('@')[0] || 'Unknown',
               email: userData.email,
               phone: userData.phoneNumber,
-              registeredAt: registrationData.registeredAt?.toDate(),
-              status: registrationData.status || 'active',
+              registeredAt: registeredAt,
+              status: registrationData.status || 'pending',
             });
           }
         }
@@ -96,8 +117,91 @@ const CourseStudentsPage = () => {
     }
   };
 
+  // Function to send notification to user
+  const sendNotification = async (
+    userEmail: string,
+    message: string,
+    type: 'status_change',
+    statusBefore: string,
+    statusAfter: string,
+    programId: string,
+    programTitle: string
+  ) => {
+    try {
+      const notificationLogsRef = collection(db, 'notification_logs');
+      
+      await addDoc(notificationLogsRef, {
+        user_email: userEmail,
+        title: getNotificationTitle(statusAfter),
+        message: message,
+        type: type,
+        status_before: statusBefore,
+        status_after: statusAfter,
+        is_sent: true,
+        sent_via: 'both', // email and in-app
+        created_at: serverTimestamp(),
+        read_at: null,
+        metadata: {
+          program_id: programId,
+          program_name: programTitle,
+          timestamp: new Date().toISOString(),
+        },
+        action_url: `/training/${programId}`,
+        related_program_id: programId,
+        related_program_name: programTitle,
+      });
+
+      console.log('Notification sent successfully');
+    } catch (err) {
+      console.error('Error sending notification:', err);
+      // Don't throw error here - we don't want to block status update
+    }
+  };
+
+  const getNotificationTitle = (status: string) => {
+    switch (status) {
+      case 'accepted':
+        return 'Application Accepted!';
+      case 'rejected':
+        return 'Application Update';
+      case 'pending':
+        return 'Application Status Changed';
+      case 'completed':
+        return 'Training Completed!';
+      default:
+        return 'Status Update';
+    }
+  };
+
+  const getNotificationMessage = (
+    programTitle: string,
+    statusBefore: string,
+    statusAfter: string
+  ) => {
+    switch (statusAfter) {
+      case 'accepted':
+        return `Congratulations! Your application for "${programTitle}" has been accepted. You can now proceed with the training.`;
+      case 'rejected':
+        return `Your application for "${programTitle}" has been reviewed. Unfortunately, it has not been accepted at this time.`;
+      case 'pending':
+        return `Your application status for "${programTitle}" has been changed from ${statusBefore} to pending.`;
+      case 'completed':
+        return `Congratulations! You have successfully completed the "${programTitle}" training program.`;
+      default:
+        return `Your application status for "${programTitle}" has been updated from ${statusBefore} to ${statusAfter}.`;
+    }
+  };
+
   const handleUpdateStatus = async (studentId: string, newStatus: Student['status']) => {
     try {
+      if (!program) return;
+      
+      // Find the student to get current status
+      const student = students.find(s => s.id === studentId);
+      if (!student) return;
+
+      const oldStatus = student.status;
+      
       // Update registration status in Firestore
       const registrationsRef = collection(db, 'registrations');
       const q = query(
@@ -109,15 +213,31 @@ const CourseStudentsPage = () => {
       
       if (!querySnapshot.empty) {
         const registrationDoc = querySnapshot.docs[0];
+        
+        // Update status
         await updateDoc(registrationDoc.ref, {
           status: newStatus,
           updatedAt: new Date(),
         });
 
+        // Send notification to user
+        await sendNotification(
+          student.email,
+          getNotificationMessage(program.title, oldStatus, newStatus),
+          'status_change',
+          oldStatus,
+          newStatus,
+          program.id,
+          program.title
+        );
+
         // Update local state
         setStudents(prev => prev.map(student => 
           student.id === studentId ? { ...student, status: newStatus } : student
         ));
+
+        // Show success message
+        alert(`Status updated to ${newStatus}. Notification sent to ${student.email}`);
       }
     } catch (err) {
       console.error('Error updating student status:', err);
@@ -127,11 +247,28 @@ const CourseStudentsPage = () => {
 
   const getStatusColor = (status: Student['status']) => {
     switch (status) {
-      case 'active': return 'bg-green-500 text-green-500';
-      case 'pending': return 'bg-yellow-500 text-yellow-500';
-      case 'completed': return 'bg-blue-500 text-blue-500';
-      default: return 'bg-gray-200 text-gray-500';
+      case 'accepted': return 'bg-green-100 text-green-800 border border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border border-red-200';
+      case 'completed': return 'bg-blue-100 text-blue-800 border border-blue-200';
+      default: return 'bg-gray-100 text-gray-800 border border-gray-200';
     }
+  };
+
+  const getStatusIcon = (status: Student['status']) => {
+    switch (status) {
+      case 'accepted': return '✅';
+      case 'pending': return '⏳';
+      case 'rejected': return '❌';
+      case 'completed': return '🎓';
+      default: return '📄';
+    }
+  };
+
+  // Bulk status update functions
+  const bulkAcceptSelected = () => {
+    // Implement if you want bulk actions
+    // You would need to track selected students
   };
 
   if (loading) {
@@ -189,17 +326,58 @@ const CourseStudentsPage = () => {
           </div>
         </div>
 
+        {/* Status Summary Bar */}
+        <div className="mb-6 bg-white rounded-xl shadow p-4">
+          <div className="flex flex-wrap gap-6">
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+              <span className="text-sm text-gray-700">
+                Pending: <span className="font-bold">{students.filter(s => s.status === 'pending').length}</span>
+              </span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              <span className="text-sm text-gray-700">
+                Accepted: <span className="font-bold">{students.filter(s => s.status === 'accepted').length}</span>
+              </span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+              <span className="text-sm text-gray-700">
+                Rejected: <span className="font-bold">{students.filter(s => s.status === 'rejected').length}</span>
+              </span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+              <span className="text-sm text-gray-700">
+                Completed: <span className="font-bold">{students.filter(s => s.status === 'completed').length}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Students List */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="px-6 py-4 border-b">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-900">Enrolled Students ({students.length})</h2>
-              <button
-                onClick={() => navigate(`/training/${id}`)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-              >
-                Back to Program
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => navigate(`/training/${id}`)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Back to Program
+                </button>
+                <button
+                  onClick={fetchProgramAndStudents}
+                  className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition flex items-center"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
 
@@ -248,37 +426,42 @@ const CourseStudentsPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
-                          {student.registeredAt.toLocaleDateString()}
+                          {student.registeredAt ? student.registeredAt.toLocaleDateString() : 'Not available'}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {student.registeredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {student.registeredAt ? 
+                            student.registeredAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 
+                            ''}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(student.status)}`}>
-                          {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(student.status)}`}>
+                            {getStatusIcon(student.status)} {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
                           <select
-                          title="select"
+                            title="select"
                             value={student.status}
                             onChange={(e) => handleUpdateStatus(student.id, e.target.value as Student['status'])}
-                            className="px-2 py-1 border rounded text-sm"
+                            className="px-2 py-1 border rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           >
-                            <option value="active">Active</option>
                             <option value="pending">Pending</option>
+                            <option value="accepted">Accepted</option>
+                            <option value="rejected">Rejected</option>
                             <option value="completed">Completed</option>
                           </select>
                           <button
                             onClick={() => {
                               // Navigate to student details or send message
-                              alert(`View details for ${student.name}`);
+                              navigate(`/admin/users/${student.id}`);
                             }}
                             className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200"
                           >
-                            View
+                            View Profile
                           </button>
                         </div>
                       </td>
@@ -290,7 +473,7 @@ const CourseStudentsPage = () => {
           )}
         </div>
 
-        {/* Stats */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
           <div className="bg-white rounded-xl shadow p-6">
             <div className="text-2xl font-bold text-blue-600">{students.length}</div>
@@ -298,9 +481,9 @@ const CourseStudentsPage = () => {
           </div>
           <div className="bg-white rounded-xl shadow p-6">
             <div className="text-2xl font-bold text-green-600">
-              {students.filter(s => s.status === 'active').length}
+              {students.filter(s => s.status === 'accepted').length}
             </div>
-            <div className="text-gray-600">Active Students</div>
+            <div className="text-gray-600">Accepted</div>
           </div>
           <div className="bg-white rounded-xl shadow p-6">
             <div className="text-2xl font-bold text-yellow-600">
@@ -309,10 +492,10 @@ const CourseStudentsPage = () => {
             <div className="text-gray-600">Pending</div>
           </div>
           <div className="bg-white rounded-xl shadow p-6">
-            <div className="text-2xl font-bold text-blue-600">
-              {students.filter(s => s.status === 'completed').length}
+            <div className="text-2xl font-bold text-red-600">
+              {students.filter(s => s.status === 'rejected').length}
             </div>
-            <div className="text-gray-600">Completed</div>
+            <div className="text-gray-600">Rejected</div>
           </div>
         </div>
       </div>

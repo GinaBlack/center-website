@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/firebase_config';
-import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import {sendNotification} from '../../utils/sendNotifications';
-import { ROLES } from '../../constants/roles';
 
 interface TrainingProgram {
   id?: string;
@@ -26,6 +25,15 @@ interface TrainingProgram {
   isVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+interface Registration {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
+}
+
+interface UserRole {
+  role?: string;
 }
 
 // Generate color based on category
@@ -59,16 +67,33 @@ const TrainingDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentParticipants, setCurrentParticipants] = useState(0);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [userRegistration, setUserRegistration] = useState<Registration | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
     if (id) {
       fetchProgramDetails(id);
-      checkIfRegistered(id);
     }
   }, [id, currentUser]);
 
-// const fetchAdminUsers 
+  // Fetch user role on component mount
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (currentUser?.uid) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as UserRole;
+            setUserRole(userData.role || 'user');
+          }
+        } catch (err) {
+          console.error('Error fetching user role:', err);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [currentUser]);
 
   const fetchProgramDetails = async (programId: string) => {
     try {
@@ -106,6 +131,26 @@ const TrainingDetailsPage = () => {
         const registrationsSnap = await getDocs(q);
         setCurrentParticipants(registrationsSnap.size);
         
+        // Check user registration if logged in
+        if (currentUser) {
+          const userRegQ = query(
+            registrationsRef, 
+            where('programId', '==', programId),
+            where('userId', '==', currentUser.uid)
+          );
+          const userRegSnap = await getDocs(userRegQ);
+          
+          if (!userRegSnap.empty) {
+            const userRegDoc = userRegSnap.docs[0];
+            setUserRegistration({
+              id: userRegDoc.id,
+              status: userRegDoc.data().status || 'pending',
+            });
+          } else {
+            setUserRegistration(null);
+          }
+        }
+        
         setError('');
       } else {
         setError('Program not found');
@@ -119,147 +164,219 @@ const TrainingDetailsPage = () => {
     }
   };
 
-  const checkIfRegistered = async (programId: string) => {
-    if (!currentUser) return;
-
+  // Helper function to fetch admin users
+  const fetchAdminUsers = async () => {
     try {
-      const registrationsRef = collection(db, 'registrations');
-      const q = query(
-        registrationsRef, 
-        where('programId', '==', programId),
-        where('userId', '==', currentUser.uid)
-      );
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'admin'));
       const querySnapshot = await getDocs(q);
-      setIsRegistered(!querySnapshot.empty);
+      
+      const adminUsers = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        email: doc.data().email,
+        displayName: doc.data().displayName,
+      }));
+      
+      return adminUsers;
     } catch (err) {
-      console.error('Error checking registration:', err);
+      console.error('Error fetching admin users:', err);
+      return [];
     }
   };
 
-// In the handleRegister function in TrainingDetailsPage.tsx
-const handleRegister = async () => {
-  if (!currentUser) {
-    alert('Please login to register for this training program');
-    navigate('/login');
-    return;
-  }
-
-  if (!program?.id) return;
-
-  try {
-    // Check if program has capacity
-    if (currentParticipants >= program.maxParticipants) {
-      alert('This program has reached maximum capacity. Please try another program.');
+  const handleRegister = async () => {
+    if (!currentUser) {
+      alert('Please login to register for this training program');
+      navigate('/login');
       return;
     }
 
-    // Check if already registered
-    if (isRegistered) {
-      alert('You are already registered for this program.');
-      return;
-    }
+    if (!program?.id) return;
 
-    // Create registration record with 'pending' status
-    const registrationsRef = collection(db, 'registrations');
-    const registrationData = {
-      programId: program.id,
-      userId: currentUser.uid,
-      userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
-      userEmail: currentUser.email,
-      userPhone: currentUser.phoneNumber,
-      status: 'pending',
-      appliedAt: new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      // Check if program has capacity
+      if (currentParticipants >= program.maxParticipants) {
+        alert('This program has reached maximum capacity. Please try another program.');
+        return;
+      }
 
-    const registrationDoc = await addDoc(registrationsRef, registrationData);
+      // Check if already registered
+      if (userRegistration) {
+        alert(`You are already registered for this program (Status: ${userRegistration.status}).`);
+        return;
+      }
 
-    // Send confirmation notification to user
-    await sendNotification({
-      user_email: currentUser.email || '',
-      message: `Your registration for "${program.title}" has been submitted and is pending admin approval. You will be notified once reviewed.`,
-      type: 'status_change',
-      status_before: " ",
-      status_after: 'pending',
-      title: 'Registration Submitted! ⏳',
-      sent_via: 'both',
-      action_url: `/training/${program.id}`,
-      related_program_id: program.id,
-      related_program_name: program.title,
-      metadata: {
-        registration_id: registrationDoc.id,
-        program_id: program.id,
-        program_name: program.title,
-        user_id: currentUser.uid,
-        applied_at: new Date().toISOString(),
-      },
-    });
+      // Create registration record with 'pending' status
+      const registrationsRef = collection(db, 'registrations');
+      const registrationData = {
+        programId: program.id,
+        userId: currentUser.uid,
+        userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+        userEmail: currentUser.email,
+        userPhone: currentUser.phoneNumber,
+        status: 'pending',
+        appliedAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-    // Send notification to admin (fetch admin users)
-    const adminUsers = await fetchAdminUsers();
-    for (const admin of adminUsers) {
+      const registrationDoc = await addDoc(registrationsRef, registrationData);
+
+      // Send confirmation notification to user
       await sendNotification({
-        user_email: admin.email,
-        message: `New registration request from ${currentUser.displayName || currentUser.email} for "${program.title}". Please review in the admin panel.`,
-        type: 'booking_created',
-        title: 'New Registration Request 📋',
-        sent_via: 'email',
-        action_url: `/admin/students?program=${program.id}`,
+        user_email: currentUser.email || '',
+        message: `Your registration for "${program.title}" has been submitted and is pending admin approval. You will be notified once reviewed.`,
+        type: 'status_change',
+        status_before: "",
+        status_after: 'pending',
+        title: 'Registration Submitted! ⏳',
+        sent_via: 'both',
+        action_url: `/training/${program.id}`,
         related_program_id: program.id,
         related_program_name: program.title,
         metadata: {
           registration_id: registrationDoc.id,
           program_id: program.id,
           program_name: program.title,
-          applicant_id: currentUser.uid,
-          applicant_name: currentUser.displayName,
-          applicant_email: currentUser.email,
+          user_id: currentUser.uid,
+          applied_at: new Date().toISOString(),
         },
       });
-    }
 
-    setIsRegistered(true);
-    setCurrentParticipants(prev => prev + 1);
-    
-    alert(`Registration submitted successfully! Your application is pending admin approval. Check your email and notifications for updates.`);
-  } catch (err) {
-    console.error('Error registering for program:', err);
-    alert('Failed to register. Please try again.');
-  }
-};
+      // Send notification to admin (fetch admin users)
+      const adminUsers = await fetchAdminUsers();
+      for (const admin of adminUsers) {
+        await sendNotification({
+          user_email: admin.email,
+          message: `New registration request from ${currentUser.displayName || currentUser.email} for "${program.title}". Please review in the admin panel.`,
+          type: 'booking_created',
+          title: 'New Registration Request 📋',
+          sent_via: 'email',
+          action_url: `/admin/students?program=${program.id}`,
+          related_program_id: program.id,
+          related_program_name: program.title,
+          metadata: {
+            registration_id: registrationDoc.id,
+            program_id: program.id,
+            program_name: program.title,
+            applicant_id: currentUser.uid,
+            applicant_name: currentUser.displayName,
+            applicant_email: currentUser.email,
+          },
+        });
+      }
+
+      // Update local state
+      setUserRegistration({
+        id: registrationDoc.id,
+        status: 'pending',
+      });
+      setCurrentParticipants(prev => prev + 1);
+      
+      alert(`Registration submitted successfully! Your application is pending admin approval. Check your email and notifications for updates.`);
+    } catch (err) {
+      console.error('Error registering for program:', err);
+      alert('Failed to register. Please try again.');
+    }
+  };
 
   const handleUnregister = async () => {
-    if (!program?.id || !isRegistered || !currentUser) return;
+    if (!program?.id || !userRegistration || !currentUser) return;
+
+    // Check if user can unregister (only if status is "pending")
+    if (userRegistration.status !== 'pending') {
+      alert(`Cannot unregister. Your application status is "${userRegistration.status}". Please contact administration for assistance.`);
+      return;
+    }
 
     try {
       const registrationsRef = collection(db, 'registrations');
-      const q = query(
-        registrationsRef, 
-        where('programId', '==', program.id),
-        where('userId', '==', currentUser.uid)
-      );
-      const querySnapshot = await getDocs(q);
       
-      if (!querySnapshot.empty) {
-        // Note: In Firestore, you need to delete the document
-        // This would require a deleteDoc function
-        alert('Please contact administration to unregister.');
-        return;
+      // Delete the registration document
+      await deleteDoc(doc(db, 'registrations', userRegistration.id));
+
+      // Send notification to user
+      await sendNotification({
+        user_email: currentUser.email || '',
+        message: `You have successfully unregistered from "${program.title}".`,
+        type: 'status_change',
+        status_before: userRegistration.status,
+        status_after: 'withdrawn',
+        title: 'Registration Cancelled 🚫',
+        sent_via: 'both',
+        action_url: `/training/${program.id}`,
+        related_program_id: program.id,
+        related_program_name: program.title,
+        metadata: {
+          program_id: program.id,
+          program_name: program.title,
+          user_id: currentUser.uid,
+          cancelled_at: new Date().toISOString(),
+        },
+      });
+
+      // Send notification to admin
+      const adminUsers = await fetchAdminUsers();
+      for (const admin of adminUsers) {
+        await sendNotification({
+          user_email: admin.email,
+          message: `${currentUser.displayName || currentUser.email} has withdrawn their registration from "${program.title}".`,
+          type: 'booking_updated',
+          title: 'Registration Withdrawn 📝',
+          sent_via: 'email',
+          action_url: `/admin/students?program=${program.id}`,
+          related_program_id: program.id,
+          related_program_name: program.title,
+          metadata: {
+            program_id: program.id,
+            program_name: program.title,
+            applicant_id: currentUser.uid,
+            applicant_name: currentUser.displayName,
+            applicant_email: currentUser.email,
+            previous_status: userRegistration.status,
+          },
+        });
       }
 
-      setIsRegistered(false);
+      // Update local state
+      setUserRegistration(null);
       setCurrentParticipants(prev => prev - 1);
       
-      alert(`Successfully unregistered from ${program.title}`);
+      alert(`Successfully unregistered from "${program.title}".`);
     } catch (err) {
       console.error('Error unregistering from program:', err);
-      alert('Failed to unregister. Please contact administration.');
+      alert('Failed to unregister. Please try again or contact administration.');
     }
   };
 
   const handleViewStudents = () => {
     navigate(`/course/${id}/students`);
   };
+
+  // Check if user can unregister (only if status is pending)
+  const canUnregister = userRegistration?.status === 'pending';
+  
+  // Check if user is admin
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  
+  // Get registration status text and color
+  const getRegistrationStatus = () => {
+    if (!userRegistration) return { text: 'Not Registered', color: 'text-gray-600', bg: 'bg-gray-100' };
+    
+    switch (userRegistration.status) {
+      case 'pending':
+        return { text: 'Pending Approval', color: 'text-yellow-600', bg: 'bg-yellow-100' };
+      case 'accepted':
+        return { text: 'Accepted ✅', color: 'text-green-600', bg: 'bg-green-100' };
+      case 'rejected':
+        return { text: 'Rejected ❌', color: 'text-red-600', bg: 'bg-red-100' };
+      case 'completed':
+        return { text: 'Completed 🎓', color: 'text-blue-600', bg: 'bg-blue-100' };
+      default:
+        return { text: userRegistration.status, color: 'text-gray-600', bg: 'bg-gray-100' };
+    }
+  };
+
+  const registrationStatus = getRegistrationStatus();
 
   if (loading) {
     return (
@@ -435,21 +552,53 @@ const handleRegister = async () => {
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <h3 className="text-xl font-bold text-gray-900 mb-4">Registration</h3>
               
-              {isRegistered ? (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+              {/* User Registration Status */}
+              {userRegistration && (
+                <div className={`mb-6 p-4 rounded-lg ${registrationStatus.bg}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`font-medium ${registrationStatus.color}`}>
+                      Your Status: {registrationStatus.text}
+                    </span>
                   </div>
-                  <h4 className="text-lg font-bold text-gray-900 mb-2">Registered!</h4>
-                  <p className="text-gray-600 mb-4">You are enrolled in this program.</p>
-                  <button
-                    onClick={handleUnregister}
-                    className="w-full mb-3 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                  >
-                    Unregister
-                  </button>
+                  <div className="text-sm text-gray-600">
+                    {userRegistration.status === 'pending' && 
+                      'Your application is under review. You will be notified once a decision is made.'}
+                    {userRegistration.status === 'accepted' && 
+                      'Congratulations! Your application has been accepted. Please proceed with the training.'}
+                    {userRegistration.status === 'rejected' && 
+                      'Thank you for your application. Unfortunately, it was not accepted at this time.'}
+                    {userRegistration.status === 'completed' && 
+                      'You have successfully completed this training program.'}
+                  </div>
+                </div>
+              )}
+              
+              {userRegistration ? (
+                <div className="text-center py-4">
+                  <div className="mb-4">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h4 className="text-lg font-bold text-gray-900 mb-2">Registered!</h4>
+                  </div>
+                  
+                  {/* Show Unregister button only if status is pending */}
+                  {canUnregister && (
+                    <button
+                      onClick={handleUnregister}
+                      className="w-full mb-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                    >
+                      Withdraw Application
+                    </button>
+                  )}
+                  
+                  {!canUnregister && (
+                    <div className="text-sm text-gray-600 mb-4">
+                      Contact administration for any changes to your registration.
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -485,8 +634,8 @@ const handleRegister = async () => {
                 </>
               )}
 
-              {/* Admin Actions */}
-              {currentUser && (
+              {/* Admin Actions - Only visible to admins */}
+              {isAdmin && (
                 <div className="mt-6 pt-6 border-t">
                   <h4 className="text-sm font-medium text-gray-700 mb-3">Admin Actions</h4>
                   <div className="space-y-2">

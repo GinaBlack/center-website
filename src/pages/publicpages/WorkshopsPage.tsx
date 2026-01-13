@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/firebase_config';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { 
+  collection, getDocs, query, where
+} from 'firebase/firestore';
 
 interface TrainingProgram {
   id: string;
@@ -58,6 +60,35 @@ const WorkshopsPage = () => {
     fetchPrograms();
   }, [selectedCategory]);
 
+  // Function to fetch all registrations at once (more efficient)
+  const fetchAllRegistrations = async () => {
+    try {
+      const registrationsRef = collection(db, 'studentRegistrations');
+      const q = query(
+        registrationsRef,
+        where('status', 'in', ['accepted', 'pending', 'active'])
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      // Group registrations by programId
+      const registrationsByProgram: Record<string, number> = {};
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const programId = data.programId;
+        if (programId && typeof programId === 'string') {
+          registrationsByProgram[programId] = (registrationsByProgram[programId] || 0) + 1;
+        }
+      });
+      
+      return registrationsByProgram;
+    } catch (err) {
+      console.error('Error fetching all registrations:', err);
+      return {};
+    }
+  };
+
   const fetchPrograms = async () => {
     try {
       setLoading(true);
@@ -72,26 +103,39 @@ const WorkshopsPage = () => {
       
       const querySnapshot = await getDocs(q);
       
+      // Fetch all registrations once
+      const registrationsByProgram = await fetchAllRegistrations();
+      
       const programsData: TrainingProgram[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
+        const programId = doc.id;
+        
+        // Get registration count for this program
+        const registrationCount = registrationsByProgram[programId] || 0;
+        
+        // Ensure all values are properly converted
+        const maxParticipants = typeof data.maxParticipants === 'number' 
+          ? data.maxParticipants 
+          : parseInt(data.maxParticipants) || 0;
+        
         programsData.push({
-          id: doc.id,
-          title: data.title,
-          description: data.description,
-          category: data.category,
-          duration: data.duration,
-          price: data.price,
+          id: programId,
+          title: data.title || '',
+          description: data.description || '',
+          category: data.category || 'Uncategorized',
+          duration: data.duration || 'N/A',
+          price: data.price || 'Free',
           instructor: data.instructor || '--',
-          schedule: data.schedule,
-          location: data.location,
-          maxParticipants: data.maxParticipants,
-          currentParticipants: data.currentParticipants || 0,
-          contactEmail: data.contactEmail,
-          contactPhone: data.contactPhone,
-          isVisible: data.isVisible,
-          imageUrl: data.imageUrl,
-          createdAt: data.createdAt?.toDate(),
+          schedule: data.schedule || 'TBA',
+          location: data.location || 'TBA',
+          maxParticipants: maxParticipants,
+          currentParticipants: registrationCount, // Use actual count from registrations
+          contactEmail: data.contactEmail || '',
+          contactPhone: data.contactPhone || '',
+          isVisible: data.isVisible || false,
+          imageUrl: data.imageUrl || '',
+          createdAt: data.createdAt?.toDate() || new Date(),
         } as TrainingProgram);
       });
 
@@ -114,20 +158,41 @@ const WorkshopsPage = () => {
     navigate(`/training/${programId}`);
   };
 
- // In the Quick Register button handler
-const handleQuickRegister = (program: TrainingProgram, e: React.MouseEvent) => {
-  e.stopPropagation();
-  if (!currentUser) {
-    alert('Please login to register for training programs');
-    navigate('/login');
-    return;
-  }
-  
-  // Show pending status message
-  alert(`Registration submitted for ${program.title}. Your application is pending admin approval. You will receive a notification once reviewed.`);
-  
-  navigate(`/training/${program.id}`);
-};
+  // In the Quick Register button handler
+  const handleQuickRegister = (program: TrainingProgram, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      alert('Please login to register for training programs');
+      navigate('/login');
+      return;
+    }
+    
+    // Check if already enrolled
+    if (program.currentParticipants >= program.maxParticipants) {
+      alert('This program is fully booked. Please check back later for availability.');
+      return;
+    }
+    
+    // Show pending status message
+    alert(`Registration submitted for ${program.title}. Your application is pending admin approval. You will receive a notification once reviewed.`);
+    
+    navigate(`/training/${program.id}`);
+  };
+
+  // Calculate enrollment percentage safely
+  const calculateEnrollmentPercentage = (program: TrainingProgram) => {
+    if (program.maxParticipants <= 0) return 0;
+    const percentage = (program.currentParticipants / program.maxParticipants) * 100;
+    return Math.min(percentage, 100); // Cap at 100%
+  };
+
+  // Get enrollment status color (for progress bar only)
+  const getEnrollmentStatusColor = (program: TrainingProgram) => {
+    const percentage = calculateEnrollmentPercentage(program);
+    if (percentage >= 100) return 'bg-red-500'; // Full
+    if (percentage >= 80) return 'bg-yellow-500'; // Almost full
+    return 'bg-green-500'; // Available
+  };
 
   if (loading) {
     return (
@@ -208,108 +273,117 @@ const handleQuickRegister = (program: TrainingProgram, e: React.MouseEvent) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {programs.map((program) => (
-              <div 
-                key={program.id} 
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
-                onClick={() => handleProgramClick(program.id)}
-              >
-                {/* Image/Color Banner */}
-                <div className={`h-48 overflow-hidden relative ${program.imageUrl ? '' : `bg-gradient-to-br ${getCategoryColor(program.category)}`}`}>
-                  {program.imageUrl ? (
-                    <img 
-                      src={program.imageUrl} 
-                      alt={program.title}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // If image fails to load, fall back to color
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.parentElement?.classList.add(`bg-gradient-to-br`, ...getCategoryColor(program.category).split(' '));
-                      }}
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-center p-6">
-                        <div className="text-4xl font-bold text-white mb-2">
-                          {getTitleInitials(program.title)}
+            {programs.map((program) => {
+              const enrollmentPercentage = calculateEnrollmentPercentage(program);
+              const isFull = program.currentParticipants >= program.maxParticipants;
+              
+              return (
+                <div 
+                  key={program.id} 
+                  className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow cursor-pointer"
+                  onClick={() => handleProgramClick(program.id)}
+                >
+                  {/* Image/Color Banner */}
+                  <div className={`h-48 overflow-hidden relative ${program.imageUrl ? '' : `bg-gradient-to-br ${getCategoryColor(program.category)}`}`}>
+                    {program.imageUrl ? (
+                      <img 
+                        src={program.imageUrl} 
+                        alt={program.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // If image fails to load, fall back to color
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          target.parentElement?.classList.add(`bg-gradient-to-br`, ...getCategoryColor(program.category).split(' '));
+                        }}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="text-center p-6">
+                          <div className="text-4xl font-bold text-white mb-2">
+                            {getTitleInitials(program.title)}
+                          </div>
+                          <div className="text-white opacity-90">Training Program</div>
                         </div>
-                        <div className="text-white opacity-90">Training Program</div>
                       </div>
-                    </div>
-                  )}
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-white text-gray-800 text-sm rounded-full font-medium">
-                      {program.category}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{program.title}</h3>
-                  
-                  <p className="text-gray-600 mb-4 line-clamp-3">{program.description}</p>
-                  
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center text-gray-700">
-                      <svg className="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
-                      <span className={program.instructor === '--' ? 'text-gray-400 italic' : ''}>
-                        {program.instructor}
+                    )}
+                    <div className="absolute top-4 right-4">
+                      <span className="px-3 py-1 bg-white text-gray-800 text-sm rounded-full font-medium">
+                        {program.category}
                       </span>
                     </div>
-                    <div className="flex items-center text-gray-700">
-                      <svg className="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
-                      </svg>
-                      {program.schedule}
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <svg className="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                      </svg>
-                      {program.location}
-                    </div>
                   </div>
                   
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <span className="text-2xl font-bold text-gray-900">{program.price}</span>
-                      <div className="text-sm text-gray-500">Full Program</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">
-                        {program.currentParticipants}/{program.maxParticipants} enrolled
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">{program.title}</h3>
+                    
+                    <p className="text-gray-600 mb-4 line-clamp-3">{program.description}</p>
+                    
+                    <div className="space-y-3 mb-6">
+                      <div className="flex items-center text-gray-700">
+                        <svg className="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                        <span className={program.instructor === '--' ? 'text-gray-400 italic' : ''}>
+                          {program.instructor}
+                        </span>
                       </div>
-                      <div className="w-32 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full" 
-                          style={{ 
-                            width: `${(program.currentParticipants / program.maxParticipants) * 100}%` 
-                          }}
-                        ></div>
+                      <div className="flex items-center text-gray-700">
+                        <svg className="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                        </svg>
+                        {program.schedule}
+                      </div>
+                      <div className="flex items-center text-gray-700">
+                        <svg className="w-5 h-5 mr-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                        </svg>
+                        {program.location}
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    <button
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                      onClick={(e) => handleQuickRegister(program, e)}
-                    >
-                      Quick Register
-                    </button>
-                    <button
-                      className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
-                      onClick={() => handleProgramClick(program.id)}
-                    >
-                      View Details
-                    </button>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <span className="text-2xl font-bold text-gray-900">{program.price}</span>
+                        <div className="text-sm text-gray-500">Full Program</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-gray-600">
+                          Duration: {program.duration}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3">
+                      <button
+                        className={`flex-1 px-4 py-2 rounded-lg transition ${
+                          isFull 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isFull) {
+                            alert('This program is fully booked. Please check back later for availability.');
+                          } else {
+                            handleQuickRegister(program, e);
+                          }
+                        }}
+                        disabled={isFull}
+                      >
+                        {isFull ? 'Fully Booked' : 'Quick Register'}
+                      </button>
+                      <button
+                        className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                        onClick={() => handleProgramClick(program.id)}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -325,7 +399,7 @@ const handleQuickRegister = (program: TrainingProgram, e: React.MouseEvent) => {
                   <div>+237 694 70 56 90</div>
                   <div>+237 677 46 99 21</div>
                   <div>+237 697 39 63 01</div>
-              </div>
+                </div>
               </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="font-bold mb-1">Email</div>
