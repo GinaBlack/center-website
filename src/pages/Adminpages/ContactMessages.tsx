@@ -40,7 +40,10 @@ import {
   AlertCircle,
   Users,
   Shield,
-  FileWarningIcon
+  FileWarningIcon,
+  Bell,
+  Notification,
+  Inbox
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -133,8 +136,6 @@ const MESSAGE_TYPES = [
   }
 ];
 
-
-
 // Reply form component
 interface ReplyFormProps {
   message: ContactMessage;
@@ -159,10 +160,10 @@ function ReplyForm({ message, onSendReply, onCancel }: ReplyFormProps) {
     
     try {
       await onSendReply(message.id, replyText);
-      toast.success("Reply sent successfully!");
+      toast.success("Notification sent successfully!");
     } catch (error) {
       console.error("Error sending reply:", error);
-      toast.error("Failed to send reply");
+      toast.error("Failed to send notification");
     } finally {
       setIsSending(false);
     }
@@ -174,7 +175,7 @@ function ReplyForm({ message, onSendReply, onCancel }: ReplyFormProps) {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-2xl font-bold">Reply to Message</h2>
+              <h2 className="text-2xl font-bold">Send Notification</h2>
               <p className="text-sm text-muted-foreground">
                 Sending to: {message.name} ({message.email})
               </p>
@@ -215,19 +216,19 @@ function ReplyForm({ message, onSendReply, onCancel }: ReplyFormProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Your Reply *
+                  Notification Message *
                 </label>
                 <textarea
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   rows={6}
                   className="w-full px-3 py-2 border border-input rounded-lg"
-                  placeholder="Type your reply here..."
+                  placeholder="Type your notification message here..."
                   required
                   disabled={isSending}
                 />
                 <p className="mt-1 text-sm text-muted-foreground">
-                  This message will be sent to {message.email} via email
+                  This message will be sent as a notification to the user
                 </p>
               </div>
 
@@ -268,8 +269,8 @@ function ReplyForm({ message, onSendReply, onCancel }: ReplyFormProps) {
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
-                      Send Reply
+                      <Bell className="w-4 h-4" />
+                      Send Notification
                     </>
                   )}
                 </button>
@@ -454,16 +455,16 @@ function MessageDetail({
                   </div>
                 </div>
 
-                {/* Reply History */}
+                {/* Notification History */}
                 {message.reply_history && message.reply_history.length > 0 && (
                   <div className="bg-card border rounded-xl p-6">
-                    <h3 className="font-medium mb-4">Reply History</h3>
+                    <h3 className="font-medium mb-4">Notification History</h3>
                     <div className="space-y-4">
                       {message.reply_history.map((reply) => (
                         <div key={reply.id} className="border-l-4 border-primary pl-4 py-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <Shield className="w-4 h-4 text-muted-foreground" />
+                              <Bell className="w-4 h-4 text-muted-foreground" />
                               <span className="text-sm font-medium">{reply.admin_name || reply.admin_email}</span>
                             </div>
                             <span className="text-xs text-muted-foreground">
@@ -471,6 +472,11 @@ function MessageDetail({
                             </span>
                           </div>
                           <p className="text-sm">{reply.reply_message}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                              Sent as notification
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -488,8 +494,8 @@ function MessageDetail({
                       onClick={onReply}
                       className="w-full px-4 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
                     >
-                      <Reply className="w-4 h-4" />
-                      Reply to Message
+                      <Bell className="w-4 h-4" />
+                      Send Notification
                     </button>
                     
                     <button
@@ -772,7 +778,40 @@ export default function MessagesManagementPage() {
     }
   };
 
-  // Handle send reply
+  // Create notification log in notification_logs collection
+  const createNotificationLog = async (message: ContactMessage, replyText: string) => {
+    try {
+      // Generate a notification ID similar to booking_id format
+      const generateId = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 20; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+
+      // Create notification log document in notification_logs collection
+      const notificationsRef = collection(db, 'notification_logs');
+      await addDoc(notificationsRef, {
+        booking_id: generateId(), // Generate a unique ID
+        created_at: Timestamp.now(),
+        is_sent: true,
+        message: `Reply to your message "${message.subject}": ${replyText}`,
+        sent_via: "system", // Changed from "both" to "system" for system-generated notifications
+        status_after: "replied",
+        status_before: message.status,
+        type: "message_reply",
+        user_email: message.email,
+        user_id: message.userId || 'anonymous' // You might want to link messages to user accounts
+      });
+    } catch (error) {
+      console.error("Error creating notification log:", error);
+      throw error;
+    }
+  };
+
+  // Handle send reply as notification
   const handleSendReply = async (messageId: string, replyText: string) => {
     try {
       const message = messages.find(m => m.id === messageId);
@@ -781,6 +820,9 @@ export default function MessagesManagementPage() {
       const user = auth.currentUser;
       const adminEmail = user?.email || "admin@enspy.com";
       
+      // Create notification log
+      await createNotificationLog(message, replyText);
+
       // Create reply history entry
       const replyEntry = {
         id: Date.now().toString(),
@@ -790,6 +832,7 @@ export default function MessagesManagementPage() {
         timestamp: Timestamp.now()
       };
 
+      // Update message in contact_messages
       const messageRef = doc(db, 'contact_messages', messageId);
       await updateDoc(messageRef, {
         status: 'replied',
@@ -812,27 +855,11 @@ export default function MessagesManagementPage() {
         return msg;
       }));
 
-      // Send email via Cloud Function
-      const response = await fetch('/api/send-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageId: message.message_id,
-          userEmail: message.email,
-          userName: message.name,
-          replyMessage: replyText
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send email');
-      }
-
-      toast.success(`Reply sent to ${message.email}`);
+      toast.success(`Notification sent to ${message.name}`);
       setShowReplyForm(false);
     } catch (error) {
       console.error("Error sending reply:", error);
-      toast.error("Failed to send reply");
+      toast.error("Failed to send notification");
       throw error;
     }
   };
@@ -933,7 +960,7 @@ export default function MessagesManagementPage() {
             <div>
               <h1 className="text-lg font-bold mb-4">Messages Management</h1>
               <p className="text-md">
-                Manage contact form messages, reply to inquiries, and track conversations
+                Manage contact form messages, send notifications, and track conversations
               </p>
             </div>
             <button
@@ -955,7 +982,7 @@ export default function MessagesManagementPage() {
             { label: "Total", value: stats.total, color: "bg-", icon: Mail },
             { label: "New", value: stats.new, color: "bg-", icon: MailOpen },
             { label: "Unread", value: stats.unread, color: "bg-", icon: Eye },
-            { label: "Replied", value: stats.replied, color: "bg-", icon: Reply },
+            { label: "Replied", value: stats.replied, color: "bg-", icon: Bell },
             { label: "Closed", value: stats.closed, color: "bg-", icon: CheckCircle },
             { label: "Important", value: stats.important, color: "bg-0", icon: Star },
           ].map((stat, index) => (
@@ -1208,9 +1235,9 @@ export default function MessagesManagementPage() {
                                 setShowReplyForm(true);
                               }}
                               className="p-2 hover:bg-muted rounded"
-                              title="Reply"
+                              title="Send Notification"
                             >
-                              <Reply className="w-4 h-4" />
+                              <Bell className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleToggleImportant(message.id)}
@@ -1265,8 +1292,16 @@ export default function MessagesManagementPage() {
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• New: Unread message</li>
                 <li>• Read: Viewed but not replied</li>
-                <li>• Replied: Response sent</li>
+                <li>• Replied: Notification sent</li>
                 <li>• Closed: Issue resolved</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2">Notification System</h4>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                <li>• Replies are logged in notification_logs</li>
+                <li>• Users receive system notifications</li>
+                <li>• All notifications are tracked</li>
               </ul>
             </div>
             <div>
