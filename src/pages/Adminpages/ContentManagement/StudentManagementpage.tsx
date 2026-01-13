@@ -3,8 +3,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { db } from '../../../firebase/firebase_config';
 import { 
   collection, getDocs, query, where, updateDoc, doc, 
-  orderBy, addDoc, getDoc // Added getDoc import
+  orderBy, addDoc, getDoc 
 } from 'firebase/firestore';
+import { sendNotification } from '../../../utils/sendNotifications';
 
 interface TrainingProgram {
   id: string;
@@ -233,91 +234,115 @@ const Students = () => {
     }
   };
 
-  const handleUpdateStatus = async (registrationId: string, newStatus: StudentRegistration['status']) => {
-    if (!currentUser) {
-      setError('You must be logged in to update status');
-      return;
+ // In the handleUpdateStatus function
+const handleUpdateStatus = async (registrationId: string, newStatus: StudentRegistration['status']) => {
+  if (!currentUser) return;
+
+  try {
+    const registrationRef = doc(db, 'registrations', registrationId);
+    const registration = registrations.find(r => r.id === registrationId);
+    
+    if (!registration) return;
+
+    const updateData: any = {
+      status: newStatus,
+      reviewedAt: new Date(),
+      reviewedBy: currentUser.uid,
+    };
+
+    if (notesInput.trim() && selectedRegistration === registrationId) {
+      updateData.notes = notesInput.trim();
     }
 
-    try {
-      const registrationRef = doc(db, 'registrations', registrationId);
-      const registration = registrations.find(r => r.id === registrationId);
-      
-      if (!registration) {
-        setError('Registration not found');
-        return;
-      }
+    await updateDoc(registrationRef, updateData);
 
-      // Prepare update data
-      const updateData: any = {
-        status: newStatus,
-        reviewedAt: new Date(),
-        reviewedBy: currentUser.uid,
-      };
+    // Update local state
+    setRegistrations(prev => prev.map(reg => 
+      reg.id === registrationId 
+        ? { 
+            ...reg, 
+            status: newStatus, 
+            reviewedAt: new Date(),
+            reviewedBy: currentUser.uid,
+            notes: notesInput.trim() || reg.notes
+          } 
+        : reg
+    ));
 
-      // Add notes if provided
-      if (notesInput.trim() && selectedRegistration === registrationId) {
-        updateData.notes = notesInput.trim();
-      }
+    // Send notification to student
+    const program = programs.find(p => p.id === registration.programId);
+    const notificationMessage = getNotificationMessage(
+      newStatus, 
+      program?.title, 
+      notesInput.trim()
+    );
 
-      await updateDoc(registrationRef, updateData);
+    await sendNotification({
+      user_email: registration.userEmail,
+      message: notificationMessage,
+      type: 'status_change',
+      status_before: registration.status,
+      status_after: newStatus,
+      title: getNotificationTitle(newStatus),
+      sent_via: 'both',
+      action_url: `/training/${registration.programId}`,
+      related_program_id: registration.programId,
+      related_program_name: program?.title,
+      metadata: {
+        registration_id: registration.id,
+        program_id: registration.programId,
+        program_name: program?.title,
+        reviewed_by: currentUser.uid,
+        notes: notesInput.trim() || undefined,
+      },
+    });
 
-      // Update local state
-      const updatedRegistrations = registrations.map(reg => 
-        reg.id === registrationId 
-          ? { 
-              ...reg, 
-              status: newStatus, 
-              reviewedAt: new Date(),
-              reviewedBy: currentUser.uid,
-              notes: notesInput.trim() || reg.notes
-            } 
-          : reg
-      );
-      
-      setRegistrations(updatedRegistrations);
+    setSuccess(`Registration ${newStatus} successfully! Notification sent to ${registration.userEmail}.`);
+    
+    setNotesInput('');
+    setSelectedRegistration(null);
+    
+    updateStats(registrations.map(r => 
+      r.id === registrationId ? { ...r, status: newStatus } : r
+    ));
 
-      // Send notification to student
-      const program = programs.find(p => p.id === registration.programId);
-      let notificationTitle = '';
-      let notificationMessage = '';
+    setTimeout(() => setSuccess(''), 3000);
+  } catch (err) {
+    console.error('Error updating registration status:', err);
+    setError('Failed to update registration status');
+  }
+};
 
-      switch (newStatus) {
-        case 'accepted':
-          notificationTitle = 'Registration Accepted';
-          notificationMessage = `Your registration for "${program?.title || 'the program'}" has been accepted. Please proceed with payment to secure your spot.`;
-          break;
-        case 'rejected':
-          notificationTitle = 'Registration Declined';
-          notificationMessage = `Your registration for "${program?.title || 'the program'}" has been declined. ${notesInput || 'Please contact administration for more details.'}`;
-          break;
-        case 'enrolled':
-          notificationTitle = 'Enrollment Confirmed';
-          notificationMessage = `Congratulations! You are now enrolled in "${program?.title || 'the program'}". Welcome to the program!`;
-          break;
-      }
+const getNotificationMessage = (
+  newStatus: string, 
+  programTitle?: string, 
+  notes?: string
+): string => {
+  const baseMessage = `Your registration for "${programTitle || 'the training program'}"`;
+  
+  switch (newStatus) {
+    case 'accepted':
+      return `${baseMessage} has been accepted. ${notes || 'Please proceed with payment to secure your spot.'}`;
+    case 'rejected':
+      return `${baseMessage} has been declined. ${notes || 'Please contact administration for more details.'}`;
+    case 'enrolled':
+      return `Congratulations! You are now enrolled in "${programTitle || 'the training program'}". ${notes || 'Welcome to the program!'}`;
+    case 'pending':
+      return `${baseMessage} is now pending review. You will be notified once reviewed.`;
+    default:
+      return `${baseMessage} status has been updated to ${newStatus}.`;
+  }
+};
 
-      if (notificationTitle && notificationMessage) {
-        await sendNotification(registration.userId, notificationTitle, notificationMessage, newStatus);
-      }
-
-      // Show success message
-      setSuccess(`Registration ${newStatus} successfully! Notification sent to student.`);
-      
-      // Reset notes input
-      setNotesInput('');
-      setSelectedRegistration(null);
-      
-      // Update stats
-      updateStats(updatedRegistrations);
-
-      // Hide success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      console.error('Error updating registration status:', err);
-      setError('Failed to update registration status');
-    }
-  };
+const getNotificationTitle = (status: string): string => {
+  switch (status) {
+    case 'accepted': return 'Registration Accepted! 🎉';
+    case 'rejected': return 'Registration Declined';
+    case 'enrolled': return 'Enrollment Confirmed! 🎓';
+    case 'pending': return 'Registration Submitted ⏳';
+    default: return 'Registration Status Updated';
+  }
+};
 
   const handleAddNotes = (registrationId: string) => {
     setSelectedRegistration(registrationId);
@@ -523,6 +548,7 @@ const Students = () => {
                     </div>
                     <div className="flex gap-2">
                       <select
+                      title="select"
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

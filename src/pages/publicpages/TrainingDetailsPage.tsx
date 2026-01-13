@@ -3,6 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { db } from '../../firebase/firebase_config';
 import { doc, getDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import {sendNotification} from '../../utils/sendNotifications';
+import { ROLES } from '../../constants/roles';
 
 interface TrainingProgram {
   id?: string;
@@ -65,6 +67,8 @@ const TrainingDetailsPage = () => {
       checkIfRegistered(id);
     }
   }, [id, currentUser]);
+
+// const fetchAdminUsers 
 
   const fetchProgramDetails = async (programId: string) => {
     try {
@@ -157,51 +161,6 @@ const handleRegister = async () => {
 
     // Create registration record with 'pending' status
     const registrationsRef = collection(db, 'registrations');
-    await addDoc(registrationsRef, {
-      programId: program.id,
-      userId: currentUser.uid,
-      userName: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
-      userEmail: currentUser.email,
-      userPhone: currentUser.phoneNumber,
-      status: 'pending', // Default status is pending
-      appliedAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    setIsRegistered(true);
-    setCurrentParticipants(prev => prev + 1);
-    
-    alert(`Registration submitted successfully! Your application is pending admin approval. You will receive a notification once reviewed.`);
-  } catch (err) {
-    console.error('Error registering for program:', err);
-    alert('Failed to register. Please try again.');
-  }
-};
-
-const handleRegister = async () => {
-  if (!currentUser) {
-    alert('Please login to register for this training program');
-    navigate('/login');
-    return;
-  }
-
-  if (!program?.id) return;
-
-  try {
-    // Check if program has capacity
-    if (currentParticipants >= program.maxParticipants) {
-      alert('This program has reached maximum capacity. Please try another program.');
-      return;
-    }
-
-    // Check if already registered
-    if (isRegistered) {
-      alert('You are already registered for this program.');
-      return;
-    }
-
-    // Create registration record with 'pending' status
-    const registrationsRef = collection(db, 'registrations');
     const registrationData = {
       programId: program.id,
       userId: currentUser.uid,
@@ -220,7 +179,7 @@ const handleRegister = async () => {
       user_email: currentUser.email || '',
       message: `Your registration for "${program.title}" has been submitted and is pending admin approval. You will be notified once reviewed.`,
       type: 'status_change',
-      status_before: null,
+      status_before: " ",
       status_after: 'pending',
       title: 'Registration Submitted! ⏳',
       sent_via: 'both',
@@ -268,6 +227,35 @@ const handleRegister = async () => {
     alert('Failed to register. Please try again.');
   }
 };
+
+  const handleUnregister = async () => {
+    if (!program?.id || !isRegistered || !currentUser) return;
+
+    try {
+      const registrationsRef = collection(db, 'registrations');
+      const q = query(
+        registrationsRef, 
+        where('programId', '==', program.id),
+        where('userId', '==', currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        // Note: In Firestore, you need to delete the document
+        // This would require a deleteDoc function
+        alert('Please contact administration to unregister.');
+        return;
+      }
+
+      setIsRegistered(false);
+      setCurrentParticipants(prev => prev - 1);
+      
+      alert(`Successfully unregistered from ${program.title}`);
+    } catch (err) {
+      console.error('Error unregistering from program:', err);
+      alert('Failed to unregister. Please contact administration.');
+    }
+  };
 
   const handleViewStudents = () => {
     navigate(`/course/${id}/students`);

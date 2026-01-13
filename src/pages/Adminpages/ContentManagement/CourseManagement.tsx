@@ -514,6 +514,7 @@ const CourseManagement = () => {
                     Category *
                   </label>
                   <select
+                  title='n'
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
@@ -533,6 +534,7 @@ const CourseManagement = () => {
                     Instructor
                   </label>
                   <select
+                  title='n'
                     name="instructor"
                     value={formData.instructor}
                     onChange={handleInputChange}
@@ -582,6 +584,7 @@ const CourseManagement = () => {
                     Max Participants *
                   </label>
                   <input
+                  title='n'
                     type="number"
                     name="maxParticipants"
                     value={formData.maxParticipants}
@@ -637,6 +640,7 @@ const CourseManagement = () => {
                           className="w-full h-full object-cover"
                         />
                         <button
+                        title='n'
                           type="button"
                           onClick={handleRemoveImage}
                           className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition"
@@ -862,6 +866,7 @@ const CourseManagement = () => {
                           <div className="text-sm text-gray-500 mb-2">Assign Lecturer</div>
                           <div className="flex flex-wrap gap-2">
                             <select
+                            title='n'
                               onChange={(e) => {
                                 const lecturer = lecturers.find(l => l.displayName === e.target.value);
                                 if (lecturer) {

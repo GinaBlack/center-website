@@ -1,3 +1,7 @@
+import { db } from '../firebase/firebase_config';
+import { collection, addDoc } from 'firebase/firestore';
+
+
 export const sendNotification = async ({
   user_email,
   message,

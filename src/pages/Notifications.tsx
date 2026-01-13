@@ -428,6 +428,7 @@ const NotificationsPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Type</label>
               <select
+              title="select"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -442,6 +443,7 @@ const NotificationsPage = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Read Status</label>
               <select
+              title="select"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value as any)}
                 className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

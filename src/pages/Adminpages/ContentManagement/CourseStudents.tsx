@@ -96,115 +96,34 @@ const CourseStudentsPage = () => {
     }
   };
 
-    // In the handleUpdateStatus function
-    const handleUpdateStatus = async (registrationId: string, newStatus: StudentRegistration['status']) => {
-    if (!currentUser) return;
-
+  const handleUpdateStatus = async (studentId: string, newStatus: Student['status']) => {
     try {
-        const registrationRef = doc(db, 'registrations', registrationId);
-        const registration = registrations.find(r => r.id === registrationId);
-        
-        if (!registration) return;
-
-        const updateData: any = {
-        status: newStatus,
-        reviewedAt: new Date(),
-        reviewedBy: currentUser.uid,
-        };
-
-        if (notesInput.trim() && selectedRegistration === registrationId) {
-        updateData.notes = notesInput.trim();
-        }
-
-        await updateDoc(registrationRef, updateData);
-
-        // Update local state
-        setRegistrations(prev => prev.map(reg => 
-        reg.id === registrationId 
-            ? { 
-                ...reg, 
-                status: newStatus, 
-                reviewedAt: new Date(),
-                reviewedBy: currentUser.uid,
-                notes: notesInput.trim() || reg.notes
-            } 
-            : reg
-        ));
-
-        // Send notification to student
-        const program = programs.find(p => p.id === registration.programId);
-        const notificationMessage = getNotificationMessage(
-        newStatus, 
-        program?.title, 
-        notesInput.trim()
-        );
-
-        await sendNotification({
-        user_email: registration.userEmail,
-        message: notificationMessage,
-        type: 'status_change',
-        status_before: registration.status,
-        status_after: newStatus,
-        title: getNotificationTitle(newStatus),
-        sent_via: 'both',
-        action_url: `/training/${registration.programId}`,
-        related_program_id: registration.programId,
-        related_program_name: program?.title,
-        metadata: {
-            registration_id: registration.id,
-            program_id: registration.programId,
-            program_name: program?.title,
-            reviewed_by: currentUser.uid,
-            notes: notesInput.trim() || undefined,
-        },
+      // Update registration status in Firestore
+      const registrationsRef = collection(db, 'registrations');
+      const q = query(
+        registrationsRef, 
+        where('programId', '==', id),
+        where('userId', '==', studentId)
+      );
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        const registrationDoc = querySnapshot.docs[0];
+        await updateDoc(registrationDoc.ref, {
+          status: newStatus,
+          updatedAt: new Date(),
         });
 
-        setSuccess(`Registration ${newStatus} successfully! Notification sent to ${registration.userEmail}.`);
-        
-        setNotesInput('');
-        setSelectedRegistration(null);
-        
-        updateStats(registrations.map(r => 
-        r.id === registrationId ? { ...r, status: newStatus } : r
+        // Update local state
+        setStudents(prev => prev.map(student => 
+          student.id === studentId ? { ...student, status: newStatus } : student
         ));
-
-        setTimeout(() => setSuccess(''), 3000);
+      }
     } catch (err) {
-        console.error('Error updating registration status:', err);
-        setError('Failed to update registration status');
+      console.error('Error updating student status:', err);
+      alert('Failed to update student status');
     }
-    };
-
-    const getNotificationMessage = (
-    newStatus: string, 
-    programTitle?: string, 
-    notes?: string
-    ): string => {
-    const baseMessage = `Your registration for "${programTitle || 'the training program'}"`;
-    
-    switch (newStatus) {
-        case 'accepted':
-        return `${baseMessage} has been accepted. ${notes || 'Please proceed with payment to secure your spot.'}`;
-        case 'rejected':
-        return `${baseMessage} has been declined. ${notes || 'Please contact administration for more details.'}`;
-        case 'enrolled':
-        return `Congratulations! You are now enrolled in "${programTitle || 'the training program'}". ${notes || 'Welcome to the program!'}`;
-        case 'pending':
-        return `${baseMessage} is now pending review. You will be notified once reviewed.`;
-        default:
-        return `${baseMessage} status has been updated to ${newStatus}.`;
-    }
-    };
-
-    const getNotificationTitle = (status: string): string => {
-    switch (status) {
-        case 'accepted': return 'Registration Accepted! 🎉';
-        case 'rejected': return 'Registration Declined';
-        case 'enrolled': return 'Enrollment Confirmed! 🎓';
-        case 'pending': return 'Registration Submitted ⏳';
-        default: return 'Registration Status Updated';
-    }
-    };
+  };
 
   const getStatusColor = (status: Student['status']) => {
     switch (status) {
@@ -343,6 +262,7 @@ const CourseStudentsPage = () => {
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
                           <select
+                          title="select"
                             value={student.status}
                             onChange={(e) => handleUpdateStatus(student.id, e.target.value as Student['status'])}
                             className="px-2 py-1 border rounded text-sm"
