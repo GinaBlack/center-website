@@ -32,8 +32,8 @@ export function Navigation() {
     { path: "/workshops", label: "Trainings" },
     { path: "/about", label: t("navigation.about") },
     { path: "/contact", label: t("navigation.contact") },
-    { path: "#", label: "Blog" },
-    { path: "#", label:"Community"},
+    { path: "#1", label: "Blog" },
+    { path: "#2", label:"Community"},
   ];
 
   /* ---------------- HELPERS ---------------- */
