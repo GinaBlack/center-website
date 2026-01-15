@@ -37,38 +37,38 @@ const methods = [
 
 export function PaymentMethodSelector({ selected, onSelect }: PaymentMethodSelectorProps) {
   return (
-    <div className="grid grid-cols-4 md:grid-cols-4 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-4 md:grid-cols-2 lg:grid-cols-4  gap-3">
       {methods.map((method) => {
-        const isSelected = selected === method.id;
-        const Icon = method.icon;
-        
-        return (
-          <button
-            key={method.id}
-            type="button"
-            onClick={() => onSelect(method.id)}
-            className={cn(
-              "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 method-transition",
-              "hover:scale-[1.02] active:scale-[0.98]",
-            isSelected
-                ? method.color === "mobile-money"
-                  ? "border-mobile-money bg-mobile-money-light"
-                  : method.color === "orange-money"
-                  ? "border-orange-money bg-orange-money-light"
-                  : method.color === "paypal"
-                  ? "border-paypal bg-paypal-light"
-                  : "border-credit-card bg-credit-card-light"
-                : "border-border bg-card hover:border-muted-foreground/30"
-            )}
-          >
-            <div
-              className={cn(
-                "p-2.5 rounded-lg method-transition",
-                isSelected
-                  ? method.color === "mobile-money"
-                    ? "bg-mobile-money text-primary-foreground"
-                    : method.color === "orange-money"
-                    ? "bg-orange-money text-primary-foreground"
+      const isSelected = selected === method.id;
+      const Icon = method.icon;
+      
+      return (
+        <button
+        key={method.id}
+        type="button"
+        onClick={() => onSelect(method.id)}
+        className={cn(
+          "relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 method-transition",
+          "hover:scale-[1.02] active:scale-[0.98]",
+        isSelected
+          ? method.color === "mobile-money"
+            ? "border-mobile-money bg-mobile-money-light"
+            : method.color === "orange-money"
+            ? "border-orange-money bg-orange-money-light"
+            : method.color === "paypal"
+            ? "border-paypal bg-paypal-light"
+            : "border-credit-card bg-credit-card-light"
+          : "border-border bg-card hover:border-muted-foreground/30"
+        )}
+        >
+        <div
+          className={cn(
+          "p-2.5 rounded-lg method-transition",
+          isSelected
+            ? method.color === "mobile-money"
+            ? "bg-mobile-money text-primary-foreground"
+            : method.color === "orange-money"
+            ? "bg-orange-money text-primary-foreground"
                     : method.color === "paypal"
                     ? "bg-paypal text-primary-foreground"
                     : "bg-credit-card text-primary-foreground"
