@@ -78,14 +78,42 @@ interface User {
     country?: string;
     zip_code?: string;
   };
-  last_login?: string;
+  last_login?: string | null;
   status: 'active' | 'suspended' | 'banned' | 'deleted';
 }
+
+// Helper functions that don't depend on component state
+const getRoleDisplay = (role: ROLES) => {
+  switch (role) {
+    case ROLES.SUPER_ADMIN: return 'Super Admin';
+    case ROLES.CENTER_ADMIN: return 'Admin';
+    case ROLES.INSTRUCTOR: return 'Instructor';
+    case ROLES.USER: return 'User';
+    default: return 'User';
+  }
+};
+
+const formatDateShort = (dateString: string) => {
+  if (!dateString) return 'Never';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', dateString, error);
+    return 'Invalid date';
+  }
+};
 
 const UserManagement: React.FC = () => {
   const { userData } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<ROLES | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'banned' | 'deleted'>('all');
@@ -130,92 +158,167 @@ const UserManagement: React.FC = () => {
 
   const isAdmin = userData?.role === ROLES.SUPER_ADMIN || userData?.role === ROLES.CENTER_ADMIN;
 
+  // Helper function to convert Firestore timestamps
+  const convertTimestamp = (timestamp: any): string => {
+    if (!timestamp) return new Date().toISOString();
+    if (timestamp instanceof Timestamp) {
+      return timestamp.toDate().toISOString();
+    }
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp).toISOString();
+    }
+    if (typeof timestamp === 'number') {
+      return new Date(timestamp).toISOString();
+    }
+    if (timestamp && timestamp.seconds) {
+      return new Date(timestamp.seconds * 1000).toISOString();
+    }
+    return new Date().toISOString();
+  };
+
   // Fetch users with filters
   const fetchUsers = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isAdmin) {
+      console.log('User is not admin, skipping fetch');
+      return;
+    }
     
     try {
+      setError(null);
       setLoading(true);
       setActionLoading(prev => ({ ...prev, fetchUsers: true }));
-      const usersRef = collection(db, 'users');
-
-      console.log('Fetching users with filters:', {
+      
+      console.log('Starting fetchUsers with:', {
         roleFilter,
         statusFilter,
+        isAdmin,
+        currentUserRole: userData?.role
       });
+      
+      const usersRef = collection(db, 'users');
       
       // Start with basic query
       let q = query(usersRef, orderBy('created_at', 'desc'));
       
       // Apply role filter if not 'all'
       if (roleFilter !== 'all') {
+        console.log('Applying role filter:', roleFilter);
         q = query(q, where('role', '==', roleFilter));
-        console.log('Applied role filter:', roleFilter);
       }
       
       // Apply status filter if not 'all'
       if (statusFilter !== 'all') {
+        console.log('Applying status filter:', statusFilter);
         q = query(q, where('status', '==', statusFilter));
-        console.log('Applied status filter:', statusFilter);
       }
 
+      console.log('Executing Firestore query...');
       const snapshot = await getDocs(q);
+      console.log('Query completed, documents found:', snapshot.size);
+      
       const usersList: User[] = [];
       
       snapshot.forEach((doc) => {
         const data = doc.data();
-        usersList.push({
-          uid: doc.id,
-          email: data.email,
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          displayName: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-          role: data.role,
-          email_verified: data.email_verified || false,
-          created_at: data.created_at instanceof Timestamp 
-            ? data.created_at.toDate().toISOString() 
-            : data.created_at || new Date().toISOString(),
-          updated_at: data.updated_at instanceof Timestamp 
-            ? data.updated_at.toDate().toISOString() 
-            : data.updated_at || new Date().toISOString(),
-          deleted_at: data.deleted_at instanceof Timestamp 
-            ? data.deleted_at.toDate().toISOString() 
-            : data.deleted_at || null,
-          deleted_by: data.deleted_by || null,
-          deleted_reason: data.deleted_reason || null,
-          avatar_url: data.avatar_url || null,
-          phone_number: data.phone_number || '',
-          address: data.address || {},
-          last_login: data.last_login instanceof Timestamp 
-            ? data.last_login.toDate().toISOString() 
-            : data.last_login,
-          status: data.status || 'active',
-        });
+        console.log(`Processing user ${doc.id}:`, data);
+        
+        try {
+          // Handle various field name formats
+          const user: User = {
+            uid: doc.id,
+            email: data.email || data.Email || '',
+            first_name: data.first_name || data.firstName || data.given_name || '',
+            last_name: data.last_name || data.lastName || data.family_name || '',
+            displayName: data.displayName || data.display_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || 'Unnamed User',
+            role: data.role || ROLES.USER,
+            email_verified: data.email_verified || data.emailVerified || data.emailVerified || false,
+            created_at: convertTimestamp(data.created_at || data.createdAt || data.dateCreated),
+            updated_at: convertTimestamp(data.updated_at || data.updatedAt || data.lastUpdated),
+            deleted_at: data.deleted_at ? convertTimestamp(data.deleted_at) : null,
+            deleted_by: data.deleted_by || null,
+            deleted_reason: data.deleted_reason || null,
+            avatar_url: data.avatar_url || data.avatarUrl || data.photoURL || data.photoUrl || null,
+            phone_number: data.phone_number || data.phoneNumber || data.phone || data.telephone || '',
+            address: data.address || {},
+            last_login: data.last_login ? convertTimestamp(data.last_login) : null,
+            status: data.status || data.account_status || 'active',
+          };
+          
+          // Validate required fields
+          if (!user.email) {
+            console.warn(`User ${doc.id} has no email`);
+          }
+          
+          usersList.push(user);
+        } catch (userError) {
+          console.error(`Error processing user ${doc.id}:`, userError);
+          console.log('Problematic data:', data);
+        }
       });
 
+      console.log('Successfully processed users:', usersList.length);
       setUsers(usersList);
+      
     } catch (error) {
       console.error('Error fetching users:', error);
-      alert('Failed to fetch users. Please try again.');
+      
+      // More detailed error logging
+      if (error instanceof Error) {
+        const errorDetails = {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        };
+        console.error('Error details:', errorDetails);
+        setError(`Failed to fetch users: ${error.message}`);
+      } else {
+        setError('Failed to fetch users. Please check your connection and try again.');
+      }
+      
+      alert('Failed to fetch users. Please check console for details.');
     } finally {
       setLoading(false);
       setActionLoading(prev => ({ ...prev, fetchUsers: false }));
+      console.log('Fetch completed');
     }
-  }, [isAdmin, roleFilter, statusFilter]);
+  }, [isAdmin, roleFilter, statusFilter, userData?.role]);
 
   useEffect(() => {
+    console.log('useEffect triggered, isAdmin:', isAdmin);
     fetchUsers();
   }, [fetchUsers]);
 
+  // Debug users state
+  useEffect(() => {
+    if (users.length > 0) {
+      console.log('Current users state updated:', users);
+      if (users[0]) {
+        console.log('First user sample:', users[0]);
+        console.log('First user timestamps:', {
+          created_at: users[0].created_at,
+          updated_at: users[0].updated_at,
+          last_login: users[0].last_login
+        });
+      }
+    }
+  }, [users]);
+
   // Filter users based on search
   const filteredUsers = users.filter(user => {
+    if (!user) return false;
+    
     const searchLower = searchTerm.toLowerCase();
-    const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+    const email = user.email?.toLowerCase() || '';
+    const phone = user.phone_number?.toLowerCase() || '';
+    const role = getRoleDisplay(user.role).toLowerCase();
+    
     return (
-      user.email.toLowerCase().includes(searchLower) ||
+      email.includes(searchLower) ||
       fullName.includes(searchLower) ||
-      user.phone_number?.toLowerCase().includes(searchLower) ||
-      user.role.toLowerCase().includes(searchLower)
+      phone.includes(searchLower) ||
+      role.includes(searchLower) ||
+      user.uid?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -226,6 +329,10 @@ const UserManagement: React.FC = () => {
     return [...filteredUsers].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
+      
+      if (aValue == null || bValue == null) {
+        return 0;
+      }
       
       if (aValue < bValue) {
         return sortConfig.direction === 'asc' ? -1 : 1;
@@ -651,33 +758,19 @@ const UserManagement: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'Never';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatDateShort = (dateString: string) => {
-    if (!dateString) return 'Never';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const getRoleDisplay = (role: ROLES) => {
-    switch (role) {
-      case ROLES.SUPER_ADMIN: return 'Super Admin';
-      case ROLES.CENTER_ADMIN: return 'Admin';
-      case ROLES.INSTRUCTOR: return 'Instructor';
-      case ROLES.USER: return 'User';
-      default: return 'User';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid date';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Invalid date';
     }
   };
 
@@ -766,8 +859,91 @@ const UserManagement: React.FC = () => {
             </div>
           </div>
 
+          {/* Debug Info - Remove in production */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                <span className="font-semibold text-yellow-800 dark:text-yellow-300">Debug Info</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Total Users:</span>
+                  <span className="ml-2 font-mono">{users.length}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Filtered:</span>
+                  <span className="ml-2 font-mono">{filteredUsers.length}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Is Admin:</span>
+                  <span className="ml-2 font-mono">{isAdmin ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Loading:</span>
+                  <span className="ml-2 font-mono">{loading ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Role Filter:</span>
+                  <span className="ml-2 font-mono">{roleFilter}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Status Filter:</span>
+                  <span className="ml-2 font-mono">{statusFilter}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Search Term:</span>
+                  <span className="ml-2 font-mono">{searchTerm || '(empty)'}</span>
+                </div>
+                <div>
+                  <span className="text-yellow-600 dark:text-yellow-400">Selected:</span>
+                  <span className="ml-2 font-mono">{selectedUsers.length}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    console.log('=== DEBUG INFO ===');
+                    console.log('Current users state:', users);
+                    console.log('Current filters:', { roleFilter, statusFilter, searchTerm });
+                    console.log('Auth user:', userData);
+                    console.log('Is Admin:', isAdmin);
+                    console.log('First user (if exists):', users[0]);
+                    console.log('=== END DEBUG ===');
+                  }}
+                  className="px-3 py-1 text-xs bg-yellow-100 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-200 dark:hover:bg-yellow-700"
+                >
+                  Log Debug Info
+                </button>
+                <button
+                  onClick={fetchUsers}
+                  className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-700"
+                >
+                  Force Refresh
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <span className="font-semibold text-red-800 dark:text-red-300">Error Loading Users</span>
+              </div>
+              <p className="text-red-600 dark:text-red-400">{error}</p>
+              <button
+                onClick={fetchUsers}
+                className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Retry Loading
+              </button>
+            </div>
+          )}
+
           {/* Stats Cards */}
-          <div className="grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between p-4">
                 <div>
@@ -966,14 +1142,33 @@ const UserManagement: React.FC = () => {
             <div className="p-12 text-center">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
               <p className="mt-4 text-gray-600 dark:text-gray-400">Loading users...</p>
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                {actionLoading.fetchUsers ? 'Fetching from Firestore...' : 'Processing data...'}
+              </p>
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No users found</h3>
               <p className="text-gray-600 dark:text-gray-400">
-                {searchTerm ? 'Try adjusting your search or filters' : 'No users in the system yet'}
+                {searchTerm || roleFilter !== 'all' || statusFilter !== 'all' 
+                  ? 'Try adjusting your search or filters' 
+                  : users.length === 0 
+                    ? 'No users in the system yet' 
+                    : 'No users match your criteria'}
               </p>
+              {(searchTerm || roleFilter !== 'all' || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setRoleFilter('all');
+                    setStatusFilter('all');
+                  }}
+                  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           ) : (
             <>

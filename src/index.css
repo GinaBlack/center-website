@@ -2782,6 +2782,8 @@
   --destructive-foreground: #fff;
  --border: #65606058;
   --input: transparent;
+  --ring: 180 60% 40%;
+  --radius: 0.75rem;
   --input-background: #f3f3f5;
   --switch-background: #cbced4;
   --font-weight-medium: 500;
@@ -2803,6 +2805,23 @@
   --sidebar-ring: oklch(.708 0 0);
   --bg-black: #000000;
   --text-white: #ffffff;
+   /* Payment method colors */
+    --mobile-money: 48 96% 53%;
+    --mobile-money-light: 48 80% 94%;
+    --orange-money: 25 95% 53%;
+    --orange-money-light: 25 80% 94%;
+    --credit-card: 220 70% 50%;
+    --credit-card-light: 220 70% 95%;
+    --paypal: 210 100% 45%;
+    --paypal-light: 210 80% 9;
+     /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(220 20% 10% / 0.08), 0 2px 4px -2px hsl(220 20% 10% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(220 20% 10% / 0.08), 0 4px 6px -4px hsl(220 20% 10% / 0.05);
+    --shadow-xl: 0 20px 25px -5px hsl(220 20% 10% / 0.1), 0 8px 10px -6px hsl(220 20% 10% / 0.05);
+
+    --sidebar-background: 0 0% 98%;
+
 }
 
 .dark {
@@ -2842,6 +2861,15 @@
   --sidebar-ring: oklch(.439 0 0);
   --bg-black: #ffffff;
   --text-white: #000000;
+    --mobile-money: 48 96% 50%;
+    --mobile-money-light: 48 50% 15%;
+    --orange-money: 30 95% 55%;
+    --orange-money-light: 30 50% 15%;
+    --credit-card: 220 70% 60%;
+    --credit-card-light: 220 40% 15%;
+    --paypal: 210 100% 55%;
+    --paypal-light: 210 50% 15%;
+
 }
 
 
@@ -5289,3 +5317,506 @@ html {
   .animate-fadeIn {
     animation: fadeIn 0.2s ease-in-out;
   }
+
+  #root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+/* Add these to your existing index.css file */
+
+/* ===== Payment Form Specific Styles ===== */
+
+/* Input focus ring for payment form */
+.input-focus-ring {
+  transition: all 0.2s ease;
+}
+
+.input-focus-ring:focus {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px var(--ring) / 0.2;
+  outline: none;
+}
+
+/* Method transition animation */
+.method-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Payment method specific colors and backgrounds */
+.bg-mobile-money-light {
+  background-color: hsl(var(--mobile-money-light));
+}
+
+.border-mobile-money {
+  border-color: hsl(var(--mobile-money));
+}
+
+.border-mobile-money\/30 {
+  border-color: hsl(var(--mobile-money) / 0.3);
+}
+
+.text-mobile-money {
+  color: hsl(var(--mobile-money));
+}
+
+.bg-mobile-money {
+  background-color: hsl(var(--mobile-money));
+}
+
+.hover\:bg-mobile-money\/90:hover {
+  background-color: hsl(var(--mobile-money) / 0.9);
+}
+
+/* Orange Money */
+.bg-orange-money-light {
+  background-color: hsl(var(--orange-money-light));
+}
+
+.border-orange-money {
+  border-color: hsl(var(--orange-money));
+}
+
+.border-orange-money\/30 {
+  border-color: hsl(var(--orange-money) / 0.3);
+}
+
+.text-orange-money {
+  color: hsl(var(--orange-money));
+}
+
+.bg-orange-money {
+  background-color: hsl(var(--orange-money));
+}
+
+.hover\:bg-orange-money\/90:hover {
+  background-color: hsl(var(--orange-money) / 0.9);
+}
+
+/* Credit Card */
+.bg-credit-card-light {
+  background-color: hsl(var(--credit-card-light));
+}
+
+.border-credit-card {
+  border-color: hsl(var(--credit-card));
+}
+
+.border-credit-card\/30 {
+  border-color: hsl(var(--credit-card) / 0.3);
+}
+
+.text-credit-card {
+  color: hsl(var(--credit-card));
+}
+
+.bg-credit-card {
+  background-color: hsl(var(--credit-card));
+}
+
+.hover\:bg-credit-card\/90:hover {
+  background-color: hsl(var(--credit-card) / 0.9);
+}
+
+/* PayPal */
+.bg-paypal-light {
+  background-color: hsl(var(--paypal-light));
+}
+
+.border-paypal {
+  border-color: hsl(var(--paypal));
+}
+
+.border-paypal\/30 {
+  border-color: hsl(var(--paypal) / 0.3);
+}
+
+.text-paypal {
+  color: hsl(var(--paypal));
+}
+
+.bg-paypal {
+  background-color: hsl(var(--paypal));
+}
+
+.hover\:bg-paypal\/90:hover {
+  background-color: hsl(var(--paypal) / 0.9);
+}
+
+/* Animations for payment form */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+/* Form specific responsive adjustments */
+@media (max-width: 768px) {
+  .grid-cols-1\.md\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Enhanced focus states for accessibility */
+.input-focus-ring:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Payment selector hover effects */
+.hover\:border-muted-foreground\/30:hover {
+  border-color: var(--muted-foreground) / 0.3;
+}
+
+/* Payment button active states */
+.active\:scale-\[0\.98\]:active {
+  transform: scale(0.98);
+}
+
+/* Utility classes for payment components */
+.hover\:scale-\[1\.02\]:hover {
+  transform: scale(1.02);
+}
+
+/* Font-mono utility for card number */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Additional spacing utilities */
+.space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+.space-y-3 > * + * {
+  margin-top: 0.75rem;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+/* Grid gap utilities */
+.gap-3 {
+  gap: 0.75rem;
+}
+
+.gap-4 {
+  gap: 1rem;
+}
+
+/* Height utilities */
+.h-11 {
+  height: 2.75rem;
+}
+
+.h-12 {
+  height: 3rem;
+}
+
+/* Padding utilities */
+.pl-14 {
+  padding-left: 3.5rem;
+}
+
+/* Border radius utilities */
+.rounded-xl {
+  border-radius: 0.75rem;
+}
+
+/* Text utilities */
+.text-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.text-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.text-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.tracking-wider {
+  letter-spacing: 0.05em;
+}
+
+/* Payment method icons container */
+.p-2\.5 {
+  padding: 0.625rem;
+}
+
+/* Absolute positioning utilities */
+.absolute {
+  position: absolute;
+}
+
+.-top-1 {
+  top: -0.25rem;
+}
+
+.-right-1 {
+  right: -0.25rem;
+}
+
+/* Flex utilities */
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+/* Payment form field spacing */
+.min-h-\[80px\] {
+  min-height: 80px;
+}
+
+.resize-none {
+  resize: none;
+}
+
+/* Select trigger height fix */
+.h-11 {
+  height: 2.75rem;
+}
+
+/* Payment type select styling */
+.h-11.input-focus-ring {
+  height: 2.75rem;
+}
+
+/* Form section headers */
+.text-muted-foreground.uppercase.tracking-wider {
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Card input styling */
+.bg-card {
+  background-color: var(--card);
+}
+
+/* Form validation states */
+.border-red-500 {
+  border-color: var(--color-red-500);
+}
+
+.border-green-500 {
+  border-color: var(--color-green-500);
+}
+
+/* Loading state for payment button */
+.button-loading {
+  position: relative;
+  color: transparent !important;
+}
+
+.button-loading::after {
+  content: "";
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  top: 50%;
+  left: 50%;
+  margin-left: -0.5rem;
+  margin-top: -0.5rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: button-spinner 0.8s linear infinite;
+}
+
+@keyframes button-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success/error message animations */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Payment confirmation modal styles */
+.payment-confirmation {
+  animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Mobile optimization for payment form */
+@media (max-width: 640px) {
+  .payment-form-mobile {
+    padding: 1rem;
+  }
+  
+  .grid-cols-2.md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .h-11 {
+    height: 2.5rem;
+  }
+  
+  .h-12 {
+    height: 2.75rem;
+  }
+}
+
+/* Dark mode adjustments for payment form */
+.dark .input-focus-ring {
+  background-color: var(--input);
+}
+
+.dark .bg-mobile-money-light {
+  background-color: hsl(var(--mobile-money-light));
+}
+
+.dark .bg-orange-money-light {
+  background-color: hsl(var(--orange-money-light));
+}
+
+.dark .bg-credit-card-light {
+  background-color: hsl(var(--credit-card-light));
+}
+
+.dark .bg-paypal-light {
+  background-color: hsl(var(--paypal-light));
+}
+
+.dark .border-mobile-money\/30 {
+  border-color: hsl(var(--mobile-money) / 0.2);
+}
+
+.dark .border-orange-money\/30 {
+  border-color: hsl(var(--orange-money) / 0.2);
+}
+
+.dark .border-credit-card\/30 {
+  border-color: hsl(var(--credit-card) / 0.2);
+}
+
+.dark .border-paypal\/30 {
+  border-color: hsl(var(--paypal) / 0.2);
+}
+
+/* Ensure text remains readable in dark mode */
+.dark .text-muted-foreground {
+  color: var(--muted-foreground);
+}
+
+.dark .text-foreground {
+  color: var(--foreground);
+}

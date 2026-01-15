@@ -81,6 +81,9 @@ import VerifiedRoute from './components/VerifiedRoute';
 
 import Spinner from './components/LaodingScreen';
 
+//Payment
+import PaymentPage from './pages/payment/PaymentPage';
+
 // Role-Based Dashboard Component
 const RoleBasedDashboard = () => {
   const { currentUser, getUserRole } = useAuth();
@@ -213,10 +216,17 @@ const App = () => {
                 <Route path="systemsettings" element={<SystemSetting />} />
                 <Route path="hallmanagement" element={<HallManagement/>} />
               </Route>
-              
+
+              {/* ================= Payment Routes ================= */}
+                <Route path="payments">
+                  <Route index element={
+                                      <VerifiedRoute>
+                                        <PaymentPage />
+                                      </VerifiedRoute>
+                                      } />
+                </Route>
               {/* ================= 404 ================= */}
               <Route path="*" element={<NotFound />} />
-
             </Routes>
           </AuthProvider>
         </BrowserRouter>
