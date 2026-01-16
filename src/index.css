@@ -933,8 +933,8 @@
   .w-65 {
     width: calc(var(--spacing) * 65);
   }
-.w-64 {
-    width: calc(var(--spacing) * 64);
+  .w-50 {
+    width: calc(var(--spacing) * 50);
   }
 
   .w-fit {

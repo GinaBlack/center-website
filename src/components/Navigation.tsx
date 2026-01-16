@@ -15,6 +15,7 @@ import {
   Scan,
   Users,
   Home,
+  NotebookIcon,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -88,6 +89,7 @@ export function Navigation() {
     { label: "Blog", icon: <MessageSquare className="w-4 h-4" />, path: "/blog" },
     { label: "File Guidelines", icon: <FileText className="w-4 h-4" />, path: "/guidelines" },
     { label: "Material Library", icon: <Library className="w-4 h-4" />, path: "/materials" },
+    { label: "Our Services", icon: <NotebookIcon className="w-4 h-4" />, path: "/services" },
   ];
 
   const mainServiceItems = [
@@ -212,7 +214,7 @@ export function Navigation() {
       <button
         onClick={onToggle}
         className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium
-          ${isOpen ? "bg-black text-white" : "text-muted-foreground hover:bg-muted"}`}
+          ${isOpen ? "bg-black text-white" : "text-muted hover:bg-muted"}`}
       >
         {title}
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
@@ -224,7 +226,7 @@ export function Navigation() {
             <button
               key={item.path}
               onClick={() => navigateTo(item.path)}
-              className="flex gap-2 w-full px-4 py-3 text-sm hover:bg-muted text-left"
+              className="flex gap-2  px-4 py-3 w-65 text-black text-sm hover:bg-muted "
             >
               {item.icon}
               {item.label}
@@ -359,29 +361,60 @@ export function Navigation() {
       <nav className="bg-background border-b">
         <div className="h-16 flex justify-between items-center px-4">
           <button onClick={() => navigateTo("/")} className="flex gap-2">
-            <img src={logo} className="w-10 h-10" />
-            <span className="font-semibold">{t("navigation.logo")}</span>
+            <img src={logo} alt="Logo" className="w-10 h-10 object-contain" />
+            <span className="tracking-tight font-semibold">{t("navigation.logo")}</span>
           </button>
 
           <div className="hidden lg:flex gap-2">
-            {mainNavItems.map((item) => (
-              <button 
+
+
+          {mainNavItems.map((item) => (
+            <button 
               key={item.path} 
               onClick={() => navigateTo(item.path)} 
-              className="px-4 py-2 rounded-lg hover:bg-muted">
-                {item.label}
-              </button>
-            ))}
+              disabled={isAnimating}
+              className={`
+                relative px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                ${isActive(item.path)
+                  ? "bg-black text-white shadow-lg scale-105"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"}
+              `}
+            >
+              {item.label}
+              {isActive(item.path) && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
+              )}
+            </button>
+          ))}
 
-              {/* Services Dropdown in Main Nav */}
-              <Dropdown
-                title="Services"
-                items={mainServiceItems}
-                isOpen={activeDropdown === 'main-services'}
-                onToggle={() => toggleDropdown('main-services')}
-                dropdownRef={mainServicesDropdownRef}
-              />
-           
+          {/* Services Dropdown in Main Nav */}
+          <div className="relative" ref={mainServicesDropdownRef}>
+            <button
+              onClick={() => toggleDropdown('main-services')}
+              className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                ${activeDropdown === 'main-services' || mainServiceItems.some(item => isActive(item.path))
+                  ? "bg-black text-white shadow-lg scale-105"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+            >
+              Services
+              <ChevronDown className={`w-4 h-4 transition-transform ${activeDropdown === 'main-services' ? "rotate-180" : ""}`} />
+            </button>
+
+            {activeDropdown === 'main-services' && (
+              <div className="absolute top-full left-0 mt-1 bg-background border rounded-lg shadow-xl z-50">
+                {mainServiceItems.map((item) => (
+                  <button
+                    key={item.path}
+                    onClick={() => navigateTo(item.path)}
+                    className="flex gap-2  px-4 py-3 w-50 text-black text-sm hover:bg-muted"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>           
             <UserMenu />
 
               <Button
@@ -422,8 +455,20 @@ export function Navigation() {
         {isMenuOpen && (
           <div className="lg:hidden p-4 space-y-2">
             {mainNavItems.map((item) => (
-              <button key={item.path} onClick={() => navigateTo(item.path)} className="w-full p-4 text-left rounded-lg hover:bg-muted">
-                {item.label}
+                <button
+                  key={item.path}
+                  onClick={() => navigateTo(item.path)}
+                  className={`
+                    p-4 rounded-lg text-left font-medium flex justify-between w-full
+                    ${isActive(item.path)
+                      ? "bg-black text-white"
+                      : "text-muted-foreground hover:bg-muted"}
+                  `}
+                >
+                  <span>{item.label}</span>
+                  {isActive(item.path) && (
+                    <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  )}
               </button>
             ))}
 
